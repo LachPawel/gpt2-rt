@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Realtime Voice Agent</title>
+<style>
+  :root {
+    --color-bg:#0F0F0F; --color-panel:#1A1919;
+    --color-text-pri:#F9F9F9; --color-text-sec:#DEDEDE; --color-text-ter:#666666;
+    --color-border:#333333; --color-accent:#6993FF; --color-glow:#006FFF;
+    --glow-opacity:0.2;
+    --green:#34d399; --orange:#fb923c; --blue:#6993FF; --red:#f87171;
+    --font-display:"Milling","Inter","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;background:var(--color-bg)}
+  body{
+    font-family:var(--font-display);
+    color:var(--color-text-pri);
+    font-size:14px;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .glow-layer{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  .glow-orb{
+    position:absolute;left:40%;top:-200px;width:1100px;height:800px;
+    background:radial-gradient(ellipse,var(--color-glow) 0%,transparent 70%);
+    filter:blur(100px);opacity:0.14;
+  }
+  .container{
+    position:relative;z-index:1;
+    width:100%;max-width:1600px;margin:0 auto;
+    padding:100px 48px 64px;
+    border-left:1px dashed rgba(255,255,255,0.10);
+    border-right:1px dashed rgba(255,255,255,0.10);
+    border-bottom:1px dashed rgba(255,255,255,0.10);
+    display:flex;flex-direction:column;align-items:center;
+    min-height:100vh;
+  }
+  .eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:24px;color:var(--color-text-ter)}
+  .eyebrow::before{content:"";display:block;width:24px;height:1px;background:var(--color-text-ter)}
+  .eyebrow span{text-transform:uppercase;font-size:11px;letter-spacing:0.4px}
+  h1{
+    font-family:var(--font-display);
+    font-size:88px;font-weight:300;letter-spacing:-3px;line-height:0.95;
+    margin:0 0 16px;text-align:center;color:var(--color-text-pri);
+  }
+  .sub{
+    color:var(--color-text-ter);font-size:15px;line-height:1.65;
+    margin-bottom:48px;text-align:center;max-width:560px;
+  }
+  .badge{
+    display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;
+    font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;
+    background:var(--color-panel);border:1px solid var(--color-border);
+    color:var(--color-text-ter); transition:all 0.3s ease;
+  }
+  .badge .dot{width:8px;height:8px;border-radius:50%;background:var(--color-text-ter);transition:all 0.3s ease}
+  .badge.connecting{color:var(--orange);border-color:rgba(251,146,60,0.35)}
+  .badge.connecting .dot{background:var(--orange);animation:pulse-dot 1s infinite}
+  .badge.live{color:var(--green);border-color:rgba(52,211,153,0.4);background:rgba(52,211,153,0.06)}
+  .badge.live .dot{background:var(--green);box-shadow:0 0 12px var(--green)}
+  .badge.error{color:var(--red);border-color:rgba(248,113,113,0.4)}
+  .badge.error .dot{background:var(--red)}
+  .mic-wrap{position:relative;margin:48px 0 40px;width:160px;height:160px;display:flex;align-items:center;justify-content:center}
+  .mic-btn{
+    width:120px;height:120px;border-radius:999px;border:none;cursor:pointer;
+    background:var(--color-accent);
+    color:var(--color-text-pri);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 32px rgba(105,147,255,0.35);
+    transition:transform 0.2s ease,box-shadow 0.3s ease;
+    position:relative;z-index:2;
+  }
+  .mic-btn:hover{transform:scale(1.04)}
+  .mic-btn:active{transform:scale(0.97)}
+  .mic-btn svg{width:42px;height:42px}
+  .mic-btn.live{
+    background:var(--color-accent);
+    box-shadow:0 8px 48px rgba(105,147,255,0.6);
+    animation:pulse-btn 2s infinite;
+  }
+  .mic-btn.live::before{content:"";position:absolute;inset:-14px;border-radius:999px;border:1px solid rgba(105,147,255,0.6);animation:ring 2s infinite}
+  .mic-btn.live::after{content:"";position:absolute;inset:-28px;border-radius:999px;border:1px solid rgba(105,147,255,0.3);animation:ring 2s infinite 0.5s}
+  @keyframes pulse-btn{0%,100%{box-shadow:0 8px 32px rgba(105,147,255,0.4)}50%{box-shadow:0 8px 56px rgba(105,147,255,0.75)}}
+  @keyframes ring{0%{transform:scale(0.95);opacity:1}100%{transform:scale(1.35);opacity:0}}
+  @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
+  .log-wrap{width:100%;max-width:720px;margin-top:8px}
+  .log-header{
+    display:flex;align-items:baseline;justify-content:space-between;
+    padding-top:32px;border-top:1px solid var(--color-border);
+    margin-bottom:16px;
+  }
+  .log-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--color-text-ter)}
+  .log-index{font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--color-text-ter)}
+  .log{
+    width:100%;height:340px;
+    background:var(--color-panel);
+    border:1px solid var(--color-border);
+    border-radius:12px;
+    padding:14px 16px;overflow-y:auto;
+    font-family:var(--font-mono);font-size:12px;line-height:1.5;
+  }
+  .log:empty::before{content:"Event log — click the mic to begin.";color:var(--color-text-ter);font-style:italic}
+  .log .entry{display:flex;gap:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+  .log .entry:last-child{border-bottom:none}
+  .log .ts{color:var(--color-text-ter);flex-shrink:0}
+  .log .type{font-weight:600;flex-shrink:0}
+  .log .preview{color:var(--color-text-sec);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.75}
+  .log .t-green{color:var(--green)}
+  .log .t-blue{color:var(--color-accent)}
+  .log .t-orange{color:var(--orange)}
+  .log .t-gray{color:var(--color-text-ter)}
+  .log .t-red{color:var(--red)}
+  .footer{
+    margin-top:40px;padding:8px 14px;
+    font-size:10px;color:var(--color-text-ter);
+    background:var(--color-panel);border:1px solid var(--color-border);
+    border-radius:999px;text-transform:uppercase;letter-spacing:0.5px;
+  }
+  @media (max-width:899px){
+    .container{padding:28px 16px 40px}
+    h1{font-size:46px;letter-spacing:-1.2px}
+    .sub{font-size:14px;margin-bottom:32px}
+    .mic-wrap{margin:32px 0 28px}
+  }
+</style>
+</head>
+<body>
+  <div class="glow-layer"><div class="glow-orb"></div></div>
+  <div class="container">
+    <div class="eyebrow"><span>Realtime API · WebRTC</span></div>
+    <h1>Voice Agent</h1>
+    <div class="sub">A minimal demo of OpenAI's gpt-realtime-2 model with function calling. Click the mic and ask about your calendar.</div>
+    <span id="status" class="badge"><span class="dot"></span>Disconnected</span>
+    <div class="mic-wrap">
+      <button id="mic" class="mic-btn" aria-label="Toggle mic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="log-wrap">
+      <div class="log-header">
+        <span class="log-title">Event Stream</span>
+        <span class="log-index">01 / oai-events</span>
+      </div>
+      <div id="log" class="log"></div>
+    </div>
+    <div class="footer">Powered by OpenAI Realtime API</div>
+  </div>
+  <audio id="remote" autoplay></audio>
+<script>
+const $status = document.getElementById("status");
+const $mic = document.getElementById("mic");
+const $log = document.getElementById("log");
+const $audio = document.getElementById("remote");
+let pc = null, dc = null, micStream = null, connected = false;
+
+function setStatus(state, label) {
+  $status.className = "badge " + state;
+  $status.innerHTML = `<span class="dot"></span>${label}`;
+}
+function colorFor(type) {
+  if (type === "session.created" || type === "session.updated") return "t-green";
+  if (type.includes("audio_transcript.delta")) return "t-blue";
+  if (type.startsWith("response.function_call") || type === "conversation.item.create" || type === "response.create") return "t-orange";
+  if (type === "error") return "t-red";
+  return "t-gray";
+}
+function log(type, obj) {
+  const ts = new Date().toTimeString().slice(0, 8);
+  const preview = obj ? JSON.stringify(obj).slice(0, 140) : "";
+  const entry = document.createElement("div");
+  entry.className = "entry";
+  entry.innerHTML = `<span class="ts">${ts}</span><span class="type ${colorFor(type)}">${type}</span><span class="preview"></span>`;
+  entry.querySelector(".preview").textContent = preview;
+  $log.appendChild(entry);
+  $log.scrollTop = $log.scrollHeight;
+}
+const TOOLS = [{
+  type: "function",
+  name: "check_calendar",
+  description: "Check whether a calendar slot is available on a given date and time.",
+  parameters: {
+    type: "object",
+    properties: {
+      date: { type: "string", description: "Date in natural language or ISO format" },
+      time: { type: "string", description: "Time of day, e.g. '3pm' or '15:00'" }
+    },
+    required: ["date", "time"]
+  }
+}];
+function handleEvent(msg) {
+  log(msg.type, msg);
+  if (msg.type === "response.function_call_arguments.done" && msg.name === "check_calendar") {
+    const args = JSON.parse(msg.arguments || "{}");
+    const result = { available: true, note: `You're free on ${args.date} at ${args.time}!` };
+    const out = { type: "conversation.item.create", item: { type: "function_call_output", call_id: msg.call_id, output: JSON.stringify(result) } };
+    dc.send(JSON.stringify(out));
+    log("conversation.item.create", out);
+    const trigger = { type: "response.create" };
+    dc.send(JSON.stringify(trigger));
+    log("response.create", trigger);
+  }
+}
+async function connect() {
+  try {
+    setStatus("connecting", "Connecting");
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    pc = new RTCPeerConnection();
+    pc.ontrack = (e) => { $audio.srcObject = e.streams[0]; };
+    pc.addTrack(micStream.getAudioTracks()[0], micStream);
+    dc = pc.createDataChannel("oai-events");
+    dc.onopen = () => {
+      const update = { type: "session.update", session: { type: "realtime", tools: TOOLS, tool_choice: "auto" } };
+      dc.send(JSON.stringify(update));
+      log("session.update", update);
+    };
+    dc.onmessage = (e) => { try { handleEvent(JSON.parse(e.data)); } catch { log("raw", { data: e.data }); } };
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const r = await fetch("/session", { method: "POST", headers: { "Content-Type": "application/sdp" }, body: offer.sdp });
+    if (!r.ok) throw new Error(`Server error ${r.status}: ${await r.text()}`);
+    const answerSdp = await r.text();
+    await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+    setStatus("live", "Live");
+    $mic.classList.add("live");
+    connected = true;
+  } catch (err) {
+    console.error(err);
+    setStatus("error", "Error");
+    log("error", { message: String(err) });
+    cleanup();
+  }
+}
+function cleanup() {
+  if (dc) { try { dc.close(); } catch {} dc = null; }
+  if (pc) { try { pc.close(); } catch {} pc = null; }
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  $mic.classList.remove("live");
+  connected = false;
+}
+function disconnect() { cleanup(); setStatus("", "Disconnected"); }
+$mic.addEventListener("click", () => { connected ? disconnect() : connect(); });
+setStatus("", "Disconnected");
+</script>
+</body>
+</html>
