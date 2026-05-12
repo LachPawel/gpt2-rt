@@ -17,6 +17,11 @@ SESSION_CONFIG = {
 }
 
 
+@app.get("/aic-license")
+async def aic_license():
+    return {"key": os.environ.get("AIC_SDK_LICENSE", "")}
+
+
 @app.post("/session")
 async def session(request: Request):
     sdp = (await request.body()).decode("utf-8")
