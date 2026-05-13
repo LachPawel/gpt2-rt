@@ -22,7 +22,7 @@ You ─🎤─► Browser ═══════ audio + tool events ════
 ```bash
 git clone <this-repo> && cd gpt2-rt
 cp .env.example .env             # paste your OPENAI_API_KEY
-uv run --with-requirements requirements.txt python server.py
+uv run server.py
 ```
 
 Open http://localhost:3000, click the mic, say "what time is it?" or "what's the weather where I am?".
