@@ -135,10 +135,42 @@
   .log .t-green{color:var(--green)} .log .t-blue{color:var(--color-accent)}
   .log .t-orange{color:var(--orange)} .log .t-gray{color:var(--color-text-ter)} .log .t-red{color:var(--red)}
 
+  .robot{
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    padding:12px 18px;background:var(--color-panel);
+    border:1px solid var(--color-border);border-radius:14px;
+    margin-bottom:24px;width:100%;
+  }
+  .robot input[type=text]{
+    background:transparent;border:1px solid var(--color-border);border-radius:8px;
+    padding:6px 10px;color:var(--color-text-pri);
+    font-family:var(--font-mono);font-size:12px;width:140px;
+  }
+  .robot input[type=text]:focus{outline:none;border-color:var(--color-accent)}
+  #robot-connect.connected{border-color:var(--green);color:var(--green)}
+  #robot-connect.connected .rec-dot{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .cam-preview{
+    margin-left:auto;width:160px;height:120px;background:#0a0a0d;
+    border:1px solid var(--color-border);border-radius:8px;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;position:relative;
+  }
+  .cam-preview img{width:100%;height:100%;object-fit:cover;opacity:0.9}
+  .cam-preview:not(.live) img{display:none}
+  .cam-preview:not(.live)::before{
+    content:"no feed";color:var(--color-text-ter);font-size:10px;
+    text-transform:uppercase;letter-spacing:0.8px;
+  }
+  .cam-preview.flash::after{
+    content:"";position:absolute;inset:0;background:rgba(255,255,255,0.5);
+    animation:flash 0.3s ease-out forwards;
+  }
+  @keyframes flash{from{opacity:1}to{opacity:0}}
+
   @media (max-width:899px){
     .container{padding:24px 14px 36px}
     h1{font-size:40px;letter-spacing:-1px}
     .panels-row,.vad-row{grid-template-columns:1fr;display:flex;flex-direction:column}
+    .cam-preview{margin-left:0;width:100%;height:160px}
   }
 </style>
 </head>
@@ -184,6 +216,20 @@
       </div>
     </div>
     <div id="recordings" class="recordings"></div>
+
+    <div class="robot">
+      <div class="control">
+        <span class="control-label">Robot IP</span>
+        <input id="robot-ip" type="text" placeholder="192.168.1.50" />
+      </div>
+      <div class="control">
+        <button id="robot-connect" class="rec-btn" type="button"><span class="rec-dot"></span><span id="robot-label">Connect Robot</span></button>
+      </div>
+      <div id="cam-preview" class="cam-preview">
+        <img id="cam" crossorigin="anonymous" alt="robot camera" />
+      </div>
+    </div>
+    <canvas id="grab" width="640" height="480" style="display:none"></canvas>
 
     <div class="panels-row">
       <div class="panel">
@@ -244,6 +290,14 @@ const $specEnh = document.getElementById("spec-enh");
 const $vad = document.getElementById("vad");
 const $userTx = document.getElementById("user-tx");
 const $agentTx = document.getElementById("agent-tx");
+const $robotIp = document.getElementById("robot-ip");
+const $robotConnect = document.getElementById("robot-connect");
+const $robotLabel = document.getElementById("robot-label");
+const $cam = document.getElementById("cam");
+const $grab = document.getElementById("grab");
+const $camPreview = document.getElementById("cam-preview");
+
+let robotWs = null, robotConnected = false;
 
 let pc = null, dc = null, micStream = null, connected = false;
 let audioCtx = null, aicProc = null, aicModel = null, procCtx = null, vadCtx = null;
@@ -279,19 +333,35 @@ function log(type, obj) {
   $log.scrollTop = $log.scrollHeight;
 }
 
-const TOOLS = [{
-  type: "function",
-  name: "check_calendar",
-  description: "Check whether a calendar slot is available on a given date and time.",
-  parameters: {
-    type: "object",
-    properties: {
-      date: { type: "string", description: "Date in natural language or ISO format" },
-      time: { type: "string", description: "Time of day, e.g. '3pm' or '15:00'" }
-    },
-    required: ["date", "time"]
+const TOOLS = [
+  {
+    type: "function",
+    name: "look",
+    description: "Capture what your camera sees right now and use it to answer. Call this whenever the user asks what you see, what's in front of you, what color something is, who's there, or any question that needs visual context.",
+    parameters: { type: "object", properties: {}, required: [] }
+  },
+  {
+    type: "function",
+    name: "move",
+    description: "Walk for a short duration. Keep movements brief (200-1500ms).",
+    parameters: {
+      type: "object",
+      required: ["direction"],
+      properties: {
+        direction: { type: "string", enum: ["forward", "backward", "left", "right"] },
+        duration_ms: { type: "integer", description: "Duration in ms (100-2000)" }
+      }
+    }
+  },
+  {
+    type: "function",
+    name: "handshake",
+    description: "Offer a paw. A friendly greeting trick.",
+    parameters: { type: "object", properties: {}, required: [] }
   }
-}];
+];
+
+const INSTRUCTIONS = "You are a curious, friendly robot dog. You have a camera and four legs. Your tools let you see (look), walk (move forward/backward/left/right), and offer a paw (handshake). Keep replies short and conversational — one or two sentences. Move in short bursts (under 1 second). When the user asks what you see, ALWAYS call look() first. You can chain multiple tool calls in one turn (e.g. look then move). If a tool returns ok:false with error 'robot_not_connected', tell the user the robot isn't connected.";
 
 function renderTranscripts() {
   const render = ($el, finals, interim) => {
@@ -314,14 +384,37 @@ function renderTranscripts() {
   render($agentTx, agentFinals, agentInterim);
 }
 
-function handleEvent(msg) {
+async function handleEvent(msg) {
   log(msg.type, msg);
 
-  if (msg.type === "response.function_call_arguments.done" && msg.name === "check_calendar") {
-    const args = JSON.parse(msg.arguments || "{}");
-    const result = { available: true, note: `You're free on ${args.date} at ${args.time}!` };
-    dc.send(JSON.stringify({ type: "conversation.item.create", item: { type: "function_call_output", call_id: msg.call_id, output: JSON.stringify(result) } }));
-    dc.send(JSON.stringify({ type: "response.create" }));
+  if (msg.type === "response.function_call_arguments.done") {
+    let args = {};
+    try { args = JSON.parse(msg.arguments || "{}"); } catch {}
+    let result;
+    switch (msg.name) {
+      case "look": {
+        const frame = grabFrame();
+        if (!frame) {
+          sendFunctionResult(msg.call_id, { ok: false, error: robotConnected ? "no_camera_frame" : "robot_not_connected" });
+          return;
+        }
+        dc.send(JSON.stringify({
+          type: "conversation.item.create",
+          item: { type: "function_call_output", call_id: msg.call_id, output: JSON.stringify({ ok: true, note: "Frame captured — image attached." }) }
+        }));
+        dc.send(JSON.stringify({
+          type: "conversation.item.create",
+          item: { type: "message", role: "user", content: [{ type: "input_image", image_url: frame }] }
+        }));
+        dc.send(JSON.stringify({ type: "response.create" }));
+        return;
+      }
+      case "move":      result = await robotMove(args.direction, args.duration_ms); break;
+      case "handshake": result = await robotAction("handshake"); break;
+      default:
+        result = { ok: false, error: "unknown_tool", name: msg.name };
+    }
+    sendFunctionResult(msg.call_id, result);
     return;
   }
 
@@ -587,6 +680,117 @@ function finalizeRecording(mime, ext) {
 
 $rec.addEventListener("click", () => recording ? stopRecording() : startRecording());
 
+// ----- robot bridge -----
+const ROBOT_WS_PORT = 8888;   // websocket: motor commands
+const ROBOT_CAM_PORT = 8080;  // flask: /video_feed (waveshare default is 5000; this Pi is on 8080)
+
+$robotIp.value = localStorage.getItem("robot-ip") || "";
+
+function connectRobot() {
+  const ip = $robotIp.value.trim();
+  if (!ip) { log("robot.error", { message: "Enter a robot IP first" }); return; }
+  localStorage.setItem("robot-ip", ip);
+  try {
+    robotWs = new WebSocket(`ws://${ip}:${ROBOT_WS_PORT}`);
+    robotWs.onopen = () => {
+      robotWs.send("admin:123456");
+      robotConnected = true;
+      $robotConnect.classList.add("connected");
+      $robotLabel.textContent = "Disconnect Robot";
+      $cam.src = `http://${ip}:${ROBOT_CAM_PORT}/video_feed?r=${Date.now()}`;
+      $camPreview.classList.add("live");
+      log("robot.open", { ip });
+    };
+    robotWs.onmessage = (e) => {
+      try { log("robot.msg", JSON.parse(e.data)); } catch { log("robot.msg", { raw: String(e.data).slice(0, 80) }); }
+    };
+    robotWs.onclose = () => {
+      robotConnected = false;
+      $robotConnect.classList.remove("connected");
+      $robotLabel.textContent = "Connect Robot";
+      $camPreview.classList.remove("live");
+      $cam.src = "";
+      log("robot.close", {});
+    };
+    robotWs.onerror = () => log("robot.error", { message: "WebSocket error — check IP and that the robot server is running" });
+  } catch (err) {
+    log("robot.error", { message: String(err) });
+  }
+}
+
+function disconnectRobot() { if (robotWs) { try { robotWs.close(); } catch {} } }
+$robotConnect.addEventListener("click", () => robotConnected ? disconnectRobot() : connectRobot());
+
+function cmd(s) {
+  if (robotWs && robotWs.readyState === 1) { robotWs.send(s); log("robot.cmd", { send: s }); }
+}
+
+const MOTION_STOPS = { forward: "DS", backward: "DS", left: "TS", right: "TS" };
+const HEAD_STOPS   = { up: "UDstop", down: "UDstop", lookleft: "LRstop", lookright: "LRstop" };
+const ACTION_STOPS = { handshake: null, steady: "steadyOff", trackLine: "trackLineOff", faceDetection: "faceDetectionOff" };
+
+async function robotMove(direction, ms) {
+  if (!robotConnected) return { ok: false, error: "robot_not_connected" };
+  if (!MOTION_STOPS[direction]) return { ok: false, error: "bad_direction", direction };
+  const dur = Math.max(100, Math.min(2000, ms || 800));
+  cmd(direction);
+  await new Promise(r => setTimeout(r, dur));
+  cmd(MOTION_STOPS[direction]);
+  return { ok: true, did: direction, duration_ms: dur };
+}
+
+async function robotHead(direction, ms) {
+  if (!robotConnected) return { ok: false, error: "robot_not_connected" };
+  if (!HEAD_STOPS[direction]) return { ok: false, error: "bad_direction", direction };
+  const dur = Math.max(100, Math.min(1500, ms || 400));
+  cmd(direction);
+  await new Promise(r => setTimeout(r, dur));
+  cmd(HEAD_STOPS[direction]);
+  return { ok: true, did: direction, duration_ms: dur };
+}
+
+async function robotAction(name) {
+  if (!robotConnected) return { ok: false, error: "robot_not_connected" };
+  if (!(name in ACTION_STOPS)) return { ok: false, error: "bad_action", name };
+  cmd(name);
+  const stop = ACTION_STOPS[name];
+  if (stop) { await new Promise(r => setTimeout(r, 2000)); cmd(stop); }
+  return { ok: true, did: name };
+}
+
+function robotSetSpeed(speed) {
+  if (!robotConnected) return { ok: false, error: "robot_not_connected" };
+  const s = Math.max(0, Math.min(100, Math.round(speed)));
+  cmd("wsB " + s);
+  return { ok: true, speed: s };
+}
+
+function grabFrame() {
+  if (!robotConnected || !$cam.complete || !$cam.naturalWidth) return null;
+  const ctx = $grab.getContext("2d");
+  try {
+    ctx.drawImage($cam, 0, 0, $grab.width, $grab.height);
+    $camPreview.classList.remove("flash");
+    void $camPreview.offsetWidth;
+    $camPreview.classList.add("flash");
+    return $grab.toDataURL("image/jpeg", 0.7);
+  } catch (err) {
+    log("look.error", { message: String(err) });
+    return null;
+  }
+}
+
+function sendFunctionResult(call_id, result) {
+  dc.send(JSON.stringify({
+    type: "conversation.item.create",
+    item: { type: "function_call_output", call_id, output: JSON.stringify(result) }
+  }));
+  dc.send(JSON.stringify({ type: "response.create" }));
+}
+
+// expose for console testing — e.g. robot.move("forward", 500)
+window.robot = { cmd, move: robotMove, head: robotHead, action: robotAction, speed: robotSetSpeed, grab: grabFrame };
+
 async function connect() {
   try {
     setStatus("connecting", "Connecting");
@@ -605,6 +809,7 @@ async function connect() {
           type: "realtime",
           tools: TOOLS,
           tool_choice: "auto",
+          instructions: INSTRUCTIONS,
           audio: { input: { transcription: { model: "whisper-1" } } }
         }
       };
