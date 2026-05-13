@@ -9,48 +9,28 @@
     --color-bg:#0F0F0F; --color-panel:#1A1919;
     --color-text-pri:#F9F9F9; --color-text-sec:#DEDEDE; --color-text-ter:#666666;
     --color-border:#333333; --color-accent:#6993FF; --color-glow:#006FFF;
-    --glow-opacity:0.2;
-    --green:#34d399; --orange:#fb923c; --blue:#6993FF; --red:#f87171;
-    --font-display:"Milling","Inter","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --green:#34d399; --orange:#fb923c; --red:#f87171;
+    --font-display:"Inter","Helvetica Neue",Helvetica,Arial,sans-serif;
     --font-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;height:100%;background:var(--color-bg)}
-  body{
-    font-family:var(--font-display);
-    color:var(--color-text-pri);
-    font-size:14px;
-    min-height:100vh;
-    -webkit-font-smoothing:antialiased;
-  }
+  body{font-family:var(--font-display);color:var(--color-text-pri);font-size:14px;min-height:100vh;-webkit-font-smoothing:antialiased}
   .glow-layer{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
-  .glow-orb{
-    position:absolute;left:40%;top:-200px;width:1100px;height:800px;
-    background:radial-gradient(ellipse,var(--color-glow) 0%,transparent 70%);
-    filter:blur(100px);opacity:0.14;
-  }
+  .glow-orb{position:absolute;left:40%;top:-200px;width:1100px;height:800px;background:radial-gradient(ellipse,var(--color-glow) 0%,transparent 70%);filter:blur(100px);opacity:0.14}
   .container{
-    position:relative;z-index:1;
-    width:100%;max-width:1600px;margin:0 auto;
-    padding:100px 48px 64px;
+    position:relative;z-index:1;width:100%;max-width:1280px;margin:0 auto;
+    padding:80px 32px 48px;
     border-left:1px dashed rgba(255,255,255,0.10);
     border-right:1px dashed rgba(255,255,255,0.10);
     border-bottom:1px dashed rgba(255,255,255,0.10);
-    display:flex;flex-direction:column;align-items:center;
-    min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh;
   }
-  .eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:24px;color:var(--color-text-ter)}
+  .eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:18px;color:var(--color-text-ter)}
   .eyebrow::before{content:"";display:block;width:24px;height:1px;background:var(--color-text-ter)}
   .eyebrow span{text-transform:uppercase;font-size:11px;letter-spacing:0.4px}
-  h1{
-    font-family:var(--font-display);
-    font-size:88px;font-weight:300;letter-spacing:-3px;line-height:0.95;
-    margin:0 0 16px;text-align:center;color:var(--color-text-pri);
-  }
-  .sub{
-    color:var(--color-text-ter);font-size:15px;line-height:1.65;
-    margin-bottom:48px;text-align:center;max-width:560px;
-  }
+  h1{font-size:72px;font-weight:300;letter-spacing:-2.4px;line-height:0.95;margin:0 0 12px;text-align:center}
+  .sub{color:var(--color-text-ter);font-size:15px;line-height:1.6;margin-bottom:32px;text-align:center;max-width:540px}
   .badge{
     display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;
     font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;
@@ -64,48 +44,33 @@
   .badge.live .dot{background:var(--green);box-shadow:0 0 12px var(--green)}
   .badge.error{color:var(--red);border-color:rgba(248,113,113,0.4)}
   .badge.error .dot{background:var(--red)}
-  .mic-wrap{position:relative;margin:48px 0 40px;width:160px;height:160px;display:flex;align-items:center;justify-content:center}
+  .mic-wrap{position:relative;margin:32px 0 28px;width:140px;height:140px;display:flex;align-items:center;justify-content:center}
   .mic-btn{
-    width:120px;height:120px;border-radius:999px;border:none;cursor:pointer;
-    background:var(--color-accent);
-    color:var(--color-text-pri);
+    width:108px;height:108px;border-radius:999px;border:none;cursor:pointer;
+    background:var(--color-accent);color:var(--color-text-pri);
     display:flex;align-items:center;justify-content:center;
-    box-shadow:0 8px 32px rgba(105,147,255,0.35);
-    transition:transform 0.2s ease,box-shadow 0.3s ease;
-    position:relative;z-index:2;
+    box-shadow:0 8px 32px rgba(105,147,255,0.4);
+    transition:transform 0.2s ease,box-shadow 0.3s ease;position:relative;z-index:2;
   }
   .mic-btn:hover{transform:scale(1.04)}
   .mic-btn:active{transform:scale(0.97)}
-  .mic-btn svg{width:42px;height:42px}
-  .mic-btn.live{
-    background:var(--color-accent);
-    box-shadow:0 8px 48px rgba(105,147,255,0.6);
-    animation:pulse-btn 2s infinite;
-  }
-  .mic-btn.live::before{content:"";position:absolute;inset:-14px;border-radius:999px;border:1px solid rgba(105,147,255,0.6);animation:ring 2s infinite}
+  .mic-btn svg{width:38px;height:38px}
+  .mic-btn.live{box-shadow:0 8px 48px rgba(105,147,255,0.7);animation:pulse-btn 2s infinite}
+  .mic-btn.live::before{content:"";position:absolute;inset:-14px;border-radius:999px;border:1px solid rgba(105,147,255,0.55);animation:ring 2s infinite}
   .mic-btn.live::after{content:"";position:absolute;inset:-28px;border-radius:999px;border:1px solid rgba(105,147,255,0.3);animation:ring 2s infinite 0.5s}
-  @keyframes pulse-btn{0%,100%{box-shadow:0 8px 32px rgba(105,147,255,0.4)}50%{box-shadow:0 8px 56px rgba(105,147,255,0.75)}}
+  @keyframes pulse-btn{0%,100%{box-shadow:0 8px 32px rgba(105,147,255,0.4)}50%{box-shadow:0 8px 56px rgba(105,147,255,0.8)}}
   @keyframes ring{0%{transform:scale(0.95);opacity:1}100%{transform:scale(1.35);opacity:0}}
   @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
   .log-wrap{width:100%;max-width:720px;margin-top:8px}
-  .log-header{
-    display:flex;align-items:baseline;justify-content:space-between;
-    padding-top:32px;border-top:1px solid var(--color-border);
-    margin-bottom:16px;
-  }
+  .log-header{display:flex;align-items:baseline;justify-content:space-between;padding-top:28px;border-top:1px solid var(--color-border);margin-bottom:14px}
   .log-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--color-text-ter)}
-  .log-index{font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--color-text-ter)}
+  .log-index{font-family:var(--font-mono);font-size:14px;color:var(--color-text-ter)}
   .log{
-    width:100%;height:340px;
-    background:var(--color-panel);
-    border:1px solid var(--color-border);
-    border-radius:12px;
-    padding:14px 16px;overflow-y:auto;
-    font-family:var(--font-mono);font-size:12px;line-height:1.5;
+    width:100%;height:320px;background:var(--color-panel);border:1px solid var(--color-border);border-radius:12px;
+    padding:12px 14px;overflow-y:auto;font-family:var(--font-mono);font-size:12px;line-height:1.5;
   }
-  .log:empty::before{content:"Event log — click the mic to begin.";color:var(--color-text-ter);font-style:italic}
-  .log .entry{display:flex;gap:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
-  .log .entry:last-child{border-bottom:none}
+  .log:empty::before{content:"Event log. Click the mic to start.";color:var(--color-text-ter);font-style:italic}
+  .log .entry{display:flex;gap:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
   .log .ts{color:var(--color-text-ter);flex-shrink:0}
   .log .type{font-weight:600;flex-shrink:0}
   .log .preview{color:var(--color-text-sec);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.75}
@@ -114,26 +79,30 @@
   .log .t-orange{color:var(--orange)}
   .log .t-gray{color:var(--color-text-ter)}
   .log .t-red{color:var(--red)}
-  .footer{
-    margin-top:40px;padding:8px 14px;
-    font-size:10px;color:var(--color-text-ter);
-    background:var(--color-panel);border:1px solid var(--color-border);
-    border-radius:999px;text-transform:uppercase;letter-spacing:0.5px;
+  .screen-toggle{
+    display:inline-flex;align-items:center;gap:8px;padding:7px 16px;
+    background:transparent;border:1px solid var(--color-border);border-radius:999px;
+    color:var(--color-text-sec);font-family:var(--font-display);font-size:11px;
+    text-transform:uppercase;letter-spacing:0.7px;cursor:pointer;transition:all 0.2s;
+    margin-bottom:24px;
   }
+  .screen-toggle:hover{border-color:var(--color-text-ter);color:var(--color-text-pri)}
+  .screen-toggle .screen-dot{width:8px;height:8px;border-radius:50%;background:var(--color-text-ter)}
+  .screen-toggle.sharing{border-color:var(--color-accent);color:var(--color-accent)}
+  .screen-toggle.sharing .screen-dot{background:var(--color-accent);box-shadow:0 0 10px var(--color-accent);animation:pulse-dot 1.5s infinite}
+  .footer{margin-top:32px;padding:8px 14px;font-size:10px;color:var(--color-text-ter);background:var(--color-panel);border:1px solid var(--color-border);border-radius:999px;text-transform:uppercase;letter-spacing:0.5px}
   @media (max-width:899px){
-    .container{padding:28px 16px 40px}
-    h1{font-size:46px;letter-spacing:-1.2px}
-    .sub{font-size:14px;margin-bottom:32px}
-    .mic-wrap{margin:32px 0 28px}
+    .container{padding:36px 16px 40px}
+    h1{font-size:44px;letter-spacing:-1.2px}
   }
 </style>
 </head>
 <body>
   <div class="glow-layer"><div class="glow-orb"></div></div>
   <div class="container">
-    <div class="eyebrow"><span>Realtime API · WebRTC</span></div>
+    <div class="eyebrow"><span>OpenAI Realtime · WebRTC</span></div>
     <h1>Voice Agent</h1>
-    <div class="sub">A minimal demo of OpenAI's gpt-realtime-2 model with function calling. Click the mic and ask about your calendar.</div>
+    <div class="sub">A 60-second starter for gpt-realtime-2. Click the mic, talk, watch the model think. Add tools in one place.</div>
     <span id="status" class="badge"><span class="dot"></span>Disconnected</span>
     <div class="mic-wrap">
       <button id="mic" class="mic-btn" aria-label="Toggle mic">
@@ -144,6 +113,9 @@
         </svg>
       </button>
     </div>
+    <button id="screen-btn" class="screen-toggle" type="button">
+      <span class="screen-dot"></span><span id="screen-label">Share Screen</span>
+    </button>
     <div class="log-wrap">
       <div class="log-header">
         <span class="log-title">Event Stream</span>
@@ -155,24 +127,121 @@
   </div>
   <audio id="remote" autoplay></audio>
 <script>
+/* =========================================================
+ * 1. Tools. Add new ones here, dispatch them in TOOL_IMPL.
+ * ========================================================= */
+const TOOLS = [
+  {
+    type: "function",
+    name: "get_current_time",
+    description: "Get the user's local time, weekday, and timezone. Call this whenever the user asks what time it is, what day it is, or anything time-relative.",
+    parameters: { type: "object", properties: {}, required: [] }
+  },
+  {
+    type: "function",
+    name: "get_weather",
+    description: "Get the current weather. Without a city, uses the user's geolocation (browser will prompt for permission).",
+    parameters: {
+      type: "object",
+      properties: {
+        city: { type: "string", description: "Optional. Omit to use the user's current location." }
+      },
+      required: []
+    }
+  },
+  {
+    type: "function",
+    name: "see_screen",
+    description: "Capture what's currently on the user's screen so you can read it, explain it, or guide them through a task. The user must have clicked Share Screen first. If they haven't, ask them to.",
+    parameters: { type: "object", properties: {}, required: [] }
+  }
+];
+
+const TOOL_IMPL = {
+  // Pure functions. Return any JSON-serializable value.
+  // Throw to signal an error; the model will see ok: false.
+  get_current_time: () => {
+    const now = new Date();
+    return {
+      iso: now.toISOString(),
+      local: now.toLocaleString(),
+      weekday: now.toLocaleDateString(undefined, { weekday: "long" }),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    };
+  },
+  get_weather: async ({ city } = {}) => {
+    let url;
+    if (city) {
+      url = `https://wttr.in/${encodeURIComponent(city)}?format=j1`;
+    } else {
+      const pos = await new Promise((res, rej) => {
+        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000, maximumAge: 60_000 });
+      });
+      url = `https://wttr.in/${pos.coords.latitude},${pos.coords.longitude}?format=j1`;
+    }
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`wttr.in ${r.status}`);
+    const data = await r.json();
+    const c = data.current_condition[0];
+    const a = data.nearest_area && data.nearest_area[0];
+    return {
+      location: a ? `${a.areaName[0].value}, ${a.country[0].value}` : (city || "current location"),
+      temp_c: Number(c.temp_C),
+      feels_like_c: Number(c.FeelsLikeC),
+      description: c.weatherDesc[0].value,
+      humidity_pct: Number(c.humidity),
+      wind_kmh: Number(c.windspeedKmph)
+    };
+  },
+  see_screen: async () => {
+    const dataUrl = await grabScreen();
+    if (!dataUrl) {
+      return { ok: false, error: "screen_not_shared", note: "Ask the user to click Share Screen first." };
+    }
+    return { ok: true, _imageUrl: dataUrl, note: "Screenshot attached. Describe what you see and guide the user." };
+  }
+};
+
+/* =========================================================
+ * 2. Wiring. Usually you don't touch anything below.
+ * ========================================================= */
 const $status = document.getElementById("status");
 const $mic = document.getElementById("mic");
 const $log = document.getElementById("log");
 const $audio = document.getElementById("remote");
-let pc = null, dc = null, micStream = null, connected = false;
+const $screenBtn = document.getElementById("screen-btn");
+const $screenLabel = document.getElementById("screen-label");
 
-function setStatus(state, label) {
+let pc = null, dc = null, micStream = null, connected = false;
+let screenStream = null;
+const screenCanvas = document.createElement("canvas");
+
+async function grabScreen() {
+  if (!screenStream) return null;
+  const track = screenStream.getVideoTracks()[0];
+  const bitmap = await new ImageCapture(track).grabFrame();
+  const scale = Math.min(1, 1280 / bitmap.width);
+  screenCanvas.width = Math.round(bitmap.width * scale);
+  screenCanvas.height = Math.round(bitmap.height * scale);
+  screenCanvas.getContext("2d").drawImage(bitmap, 0, 0, screenCanvas.width, screenCanvas.height);
+  bitmap.close();
+  return screenCanvas.toDataURL("image/jpeg", 0.85);
+}
+
+const setStatus = (state, label) => {
   $status.className = "badge " + state;
   $status.innerHTML = `<span class="dot"></span>${label}`;
-}
-function colorFor(type) {
+};
+
+const colorFor = (type) => {
   if (type === "session.created" || type === "session.updated") return "t-green";
   if (type.includes("audio_transcript.delta")) return "t-blue";
   if (type.startsWith("response.function_call") || type === "conversation.item.create" || type === "response.create") return "t-orange";
   if (type === "error") return "t-red";
   return "t-gray";
-}
-function log(type, obj) {
+};
+
+const log = (type, obj) => {
   const ts = new Date().toTimeString().slice(0, 8);
   const preview = obj ? JSON.stringify(obj).slice(0, 140) : "";
   const entry = document.createElement("div");
@@ -181,34 +250,32 @@ function log(type, obj) {
   entry.querySelector(".preview").textContent = preview;
   $log.appendChild(entry);
   $log.scrollTop = $log.scrollHeight;
-}
-const TOOLS = [{
-  type: "function",
-  name: "check_calendar",
-  description: "Check whether a calendar slot is available on a given date and time.",
-  parameters: {
-    type: "object",
-    properties: {
-      date: { type: "string", description: "Date in natural language or ISO format" },
-      time: { type: "string", description: "Time of day, e.g. '3pm' or '15:00'" }
-    },
-    required: ["date", "time"]
-  }
-}];
-function handleEvent(msg) {
+};
+
+const send = (msg) => { dc.send(JSON.stringify(msg)); };
+
+const callTool = async (name, args) => {
+  const fn = TOOL_IMPL[name];
+  if (!fn) return { ok: false, error: `unknown_tool: ${name}` };
+  try { return await fn(args); }
+  catch (err) { return { ok: false, error: String(err) }; }
+};
+
+const handleEvent = async (msg) => {
   log(msg.type, msg);
-  if (msg.type === "response.function_call_arguments.done" && msg.name === "check_calendar") {
-    const args = JSON.parse(msg.arguments || "{}");
-    const result = { available: true, note: `You're free on ${args.date} at ${args.time}!` };
-    const out = { type: "conversation.item.create", item: { type: "function_call_output", call_id: msg.call_id, output: JSON.stringify(result) } };
-    dc.send(JSON.stringify(out));
-    log("conversation.item.create", out);
-    const trigger = { type: "response.create" };
-    dc.send(JSON.stringify(trigger));
-    log("response.create", trigger);
+  if (msg.type !== "response.function_call_arguments.done") return;
+  const args = JSON.parse(msg.arguments || "{}");
+  const result = await callTool(msg.name, args);
+
+  const { _imageUrl, ...output } = result || {};
+  send({ type: "conversation.item.create", item: { type: "function_call_output", call_id: msg.call_id, output: JSON.stringify(output) } });
+  if (_imageUrl) {
+    send({ type: "conversation.item.create", item: { type: "message", role: "user", content: [{ type: "input_image", image_url: _imageUrl }] } });
   }
-}
-async function connect() {
+  send({ type: "response.create" });
+};
+
+const connect = async () => {
   try {
     setStatus("connecting", "Connecting");
     micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -216,18 +283,23 @@ async function connect() {
     pc.ontrack = (e) => { $audio.srcObject = e.streams[0]; };
     pc.addTrack(micStream.getAudioTracks()[0], micStream);
     dc = pc.createDataChannel("oai-events");
-    dc.onopen = () => {
-      const update = { type: "session.update", session: { type: "realtime", tools: TOOLS, tool_choice: "auto" } };
-      dc.send(JSON.stringify(update));
-      log("session.update", update);
+    dc.onopen = () => send({
+      type: "session.update",
+      session: { type: "realtime", tools: TOOLS, tool_choice: "auto" }
+    });
+    dc.onmessage = (e) => {
+      try { handleEvent(JSON.parse(e.data)); }
+      catch { log("raw", { data: e.data }); }
     };
-    dc.onmessage = (e) => { try { handleEvent(JSON.parse(e.data)); } catch { log("raw", { data: e.data }); } };
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    const r = await fetch("/session", { method: "POST", headers: { "Content-Type": "application/sdp" }, body: offer.sdp });
-    if (!r.ok) throw new Error(`Server error ${r.status}: ${await r.text()}`);
-    const answerSdp = await r.text();
-    await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+    const r = await fetch("/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/sdp" },
+      body: offer.sdp
+    });
+    if (!r.ok) throw new Error(`Server ${r.status}: ${await r.text()}`);
+    await pc.setRemoteDescription({ type: "answer", sdp: await r.text() });
     setStatus("live", "Live");
     $mic.classList.add("live");
     connected = true;
@@ -237,16 +309,47 @@ async function connect() {
     log("error", { message: String(err) });
     cleanup();
   }
-}
-function cleanup() {
+};
+
+const cleanup = () => {
   if (dc) { try { dc.close(); } catch {} dc = null; }
   if (pc) { try { pc.close(); } catch {} pc = null; }
   if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
   $mic.classList.remove("live");
   connected = false;
-}
-function disconnect() { cleanup(); setStatus("", "Disconnected"); }
-$mic.addEventListener("click", () => { connected ? disconnect() : connect(); });
+};
+
+const disconnect = () => { cleanup(); setStatus("", "Disconnected"); };
+
+$screenBtn.addEventListener("click", async () => {
+  if (screenStream) {
+    screenStream.getTracks().forEach(t => t.stop());
+    screenStream = null;
+    screenVideo.srcObject = null;
+    $screenBtn.classList.remove("sharing");
+    $screenLabel.textContent = "Share Screen";
+    log("screen.stopped", {});
+    return;
+  }
+  try {
+    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: false });
+    // Handle user stopping share via the browser's native UI
+    screenStream.getVideoTracks()[0].addEventListener("ended", () => {
+      screenStream = null;
+      screenVideo.srcObject = null;
+      $screenBtn.classList.remove("sharing");
+      $screenLabel.textContent = "Share Screen";
+      log("screen.stopped", { reason: "user ended" });
+    });
+    $screenBtn.classList.add("sharing");
+    $screenLabel.textContent = "Stop Sharing";
+    log("screen.started", {});
+  } catch (err) {
+    log("screen.error", { message: String(err) });
+  }
+});
+
+$mic.addEventListener("click", () => connected ? disconnect() : connect());
 setStatus("", "Disconnected");
 </script>
 </body>
