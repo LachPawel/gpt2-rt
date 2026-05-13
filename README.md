@@ -47,10 +47,11 @@ Python never touches audio. It is signaling only.
 
 ## Built-in tools
 
-The starter ships two real tools, no API keys required:
+The starter ships three real tools, no extra API keys required:
 
 - **`get_current_time`** uses the browser's locale and timezone. Try "what day is it?" or "what time is it in my timezone?".
 - **`get_weather`** uses browser geolocation (with permission) and the free `wttr.in` service. Try "what's the weather where I am?" or "how warm is it in Tokyo?".
+- **`see_screen`** captures your screen on demand and sends it to the model. Click **Share Screen**, then ask "what's on my screen?" or "help me with this". The model describes what it sees and guides you through the task.
 
 ## Add your own tool
 
@@ -118,7 +119,7 @@ requirements.txt   # fastapi, uvicorn, httpx, python-dotenv
 - **More tools**: drop them into `TOOLS` and `TOOL_IMPL`. Async is fine.
 - **Multiple voices/personas**: pass `instructions` and `voice` via `session.update` from the browser at runtime.
 - **Transcripts**: the data channel already streams `response.audio_transcript.delta` events. Render them in the page.
-- **Vision**: the Realtime API accepts image inputs. Inject a `conversation.item.create` with `{ type: "input_image", image_url: ... }` before triggering a response.
+- **Vision / screen capture**: click **Share Screen** to start a screen share. When you ask the model to look at your screen, the `see_screen` tool fires. It calls `ImageCapture.grabFrame()` on the screen share track, which pulls one decoded frame directly from the OS without needing a video element or any playback state. The frame is scaled to 1280px wide, encoded as JPEG, and injected into the conversation as an `input_image` message over the existing WebRTC data channel. No extra API call, no backend involved.
 - **Robots, hardware, anything**: tool calls are just JavaScript. Hit a WebSocket, fire a webhook, call a serial port.
 
 ## License
