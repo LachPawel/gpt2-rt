@@ -1,0 +1,999 @@
+[
+  {
+    "id": "booking-simple-01",
+    "category": "simple_booking",
+    "description": "Book a meeting on Tuesday at 3pm",
+    "script": [
+      "Can you check if Tuesday at 3pm is available?",
+      "Perfect, please go ahead and book it for Tuesday at 3pm"
+    ],
+    "wer_note": "Read each line exactly as written — WER is computed against these exact words.",
+    "expected_tool_calls": [
+      {
+        "name": "check_calendar",
+        "expected_args": {
+          "date": ["tuesday", "Tuesday", "next Tuesday"],
+          "time": ["3pm", "3:00 PM", "15:00", "3 pm", "3:00pm"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["tuesday", "Tuesday", "next Tuesday"],
+          "time": ["3pm", "3:00 PM", "15:00", "3 pm", "3:00pm"]
+        }
+      }
+    ],
+    "difficulty": "easy",
+    "notes": "Baseline task. Single check + confirm booking."
+  },
+  {
+    "id": "booking-simple-02",
+    "category": "simple_booking",
+    "description": "Book a meeting for Monday at 10am for 5 people",
+    "script": [
+      "Please book a meeting for Monday at 10am for 5 people"
+    ],
+    "wer_note": "Single-line task — read exactly as written. Key WER targets: Monday, 10am, 5 people.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["monday", "Monday", "next Monday"],
+          "time": ["10am", "10:00 AM", "10:00", "10 am"],
+          "attendees": [5, "5", "five"]
+        }
+      }
+    ],
+    "difficulty": "easy",
+    "notes": "Direct booking with attendee count."
+  },
+  {
+    "id": "booking-simple-03",
+    "category": "simple_booking",
+    "description": "Check availability for Wednesday at 2pm",
+    "script": [
+      "Is Wednesday at 2pm free for a one-hour slot?",
+      "Perfect, go ahead and block that time for me"
+    ],
+    "wer_note": "Read each line exactly as written. Key WER targets: Wednesday, 2pm.",
+    "expected_tool_calls": [
+      {
+        "name": "check_calendar",
+        "expected_args": {
+          "date": ["wednesday", "Wednesday", "next Wednesday"],
+          "time": ["2pm", "2:00 PM", "14:00", "2 pm"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["wednesday", "Wednesday", "next Wednesday"],
+          "time": ["2pm", "2:00 PM", "14:00", "2 pm"]
+        }
+      }
+    ],
+    "difficulty": "easy"
+  },
+  {
+    "id": "booking-simple-04",
+    "category": "simple_booking",
+    "description": "Book a room for Friday morning",
+    "script": [
+      "Please schedule a team sync for Friday at 9am"
+    ],
+    "wer_note": "Read exactly as written. Key WER targets: Friday, 9am.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["friday", "Friday", "next Friday"],
+          "time": ["9am", "9:00 AM", "9:00", "9 am"]
+        }
+      }
+    ],
+    "difficulty": "easy"
+  },
+  {
+    "id": "correction-01",
+    "category": "correction",
+    "description": "Correct a time — fifteen not fifty",
+    "script": [
+      "Please book a meeting at fifty past two on Thursday afternoon",
+      "Actually I meant fifteen past two on Thursday, not fifty past two"
+    ],
+    "wer_note": "Say both lines exactly as written. The key test: can the model hear 'fifteen' vs 'fifty' — both lines must be transcribed accurately for WER.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["thursday", "Thursday"],
+          "time": ["2:15", "2:15 PM", "14:15", "fifteen past two", "2:15pm"]
+        }
+      }
+    ],
+    "difficulty": "medium",
+    "notes": "Tests correction handling — similar-sounding number confusion."
+  },
+  {
+    "id": "correction-02",
+    "category": "correction",
+    "description": "Correct time from 4 to 4:30",
+    "script": [
+      "Can you book me in for 4 o'clock on Monday please",
+      "Actually make it 4:30 on Monday, not 4 o'clock"
+    ],
+    "wer_note": "Say both lines exactly. The correction line must be transcribed correctly to show the model understood the update.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["monday", "Monday"],
+          "time": ["4:30", "4:30 PM", "16:30", "4:30pm", "half past four"]
+        }
+      }
+    ],
+    "difficulty": "medium"
+  },
+  {
+    "id": "correction-03",
+    "category": "correction",
+    "description": "Correct attendee count — ninety vs nineteen",
+    "script": [
+      "Please book a room on Tuesday at 11am for ninety people",
+      "I'm sorry, I meant nineteen people, not ninety — please correct that"
+    ],
+    "wer_note": "Critical WER pair: 'ninety' vs 'nineteen'. Say both lines exactly. Under noise both lines are phonetically challenging. Good WER test.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["tuesday", "Tuesday"],
+          "time": ["11am", "11:00 AM", "11:00"],
+          "attendees": [19, "19", "nineteen"]
+        }
+      }
+    ],
+    "difficulty": "medium",
+    "notes": "ninety vs nineteen — classic mishearing under noise."
+  },
+  {
+    "id": "correction-04",
+    "category": "correction",
+    "description": "Correct the day — Thursday vs Wednesday",
+    "script": [
+      "Can you schedule a one-hour meeting for next Thursday at noon",
+      "No wait, I said Wednesday not Thursday — please change the day to Wednesday"
+    ],
+    "wer_note": "Say both lines exactly. Key WER pair: Thursday vs Wednesday. Both are phonetically distinct but easy to mis-transcribe under room noise.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["wednesday", "Wednesday", "next Wednesday"],
+          "time": ["12pm", "12:00 PM", "12:00", "noon"]
+        }
+      }
+    ],
+    "difficulty": "medium"
+  },
+  {
+    "id": "spelling-01",
+    "category": "spelling",
+    "description": "Spell out a contact name letter by letter",
+    "script": [
+      "I need to book a meeting with a contact named Szymanski on Friday at 3pm",
+      "The spelling is S-Z-Y-M-A-N-S-K-I",
+      "Yes that's correct, please go ahead and confirm the booking"
+    ],
+    "wer_note": "Say all three lines exactly. The spelling line is pure transcription test — each letter must be captured. Confirm line tests short utterance accuracy after a complex prior exchange.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["friday", "Friday"],
+          "time": ["3pm", "3:00 PM", "15:00"],
+          "name": ["Szymanski", "szymanski", "SZYMANSKI", "Szymański"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "Tests letter-by-letter spelling recovery — critical under noise."
+  },
+  {
+    "id": "spelling-02",
+    "category": "spelling",
+    "description": "Spell out an unusual room name",
+    "script": [
+      "Please book room Vega for Wednesday at 2pm",
+      "The room name is V-E-G-A, like the star Vega"
+    ],
+    "wer_note": "Say both lines exactly. Letter-by-letter spelling after the room name provides a cross-check on transcription accuracy.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["wednesday", "Wednesday"],
+          "time": ["2pm", "2:00 PM", "14:00"],
+          "name": ["Vega", "vega", "VEGA"]
+        }
+      }
+    ],
+    "difficulty": "medium"
+  },
+  {
+    "id": "spelling-03",
+    "category": "spelling",
+    "description": "Update a contact name after spelling correction",
+    "script": [
+      "Please update the booking name from Smith to Smythe",
+      "The new name is spelled S-M-Y-T-H-E"
+    ],
+    "wer_note": "Say both lines exactly. 'Smith' vs 'Smythe' is a near-homophone pair — good transcription stress test.",
+    "expected_tool_calls": [
+      {
+        "name": "update_contact_name",
+        "expected_args": {
+          "old_name": ["Smith", "smith"],
+          "new_name": ["Smythe", "smythe", "SMYTHE"]
+        }
+      }
+    ],
+    "difficulty": "medium"
+  },
+  {
+    "id": "spelling-04",
+    "category": "spelling",
+    "description": "Spell a name with phonetic alphabet",
+    "script": [
+      "The contact name is Przybyszewski",
+      "That's P-R-Z-Y-B-Y-S-Z-E-W-S-K-I"
+    ],
+    "wer_note": "Hardest spelling task. Say both lines exactly. First line is a full 6-syllable word the transcriber must handle. Second line is 13 individual letters — every single one counts toward WER.",
+    "expected_tool_calls": [
+      {
+        "name": "update_contact_name",
+        "expected_args": {
+          "new_name": ["Przybyszewski", "przybyszewski"]
+        }
+      }
+    ],
+    "difficulty": "hard"
+  },
+  {
+    "id": "multistep-01",
+    "category": "multi_step",
+    "description": "Cancel Monday meeting and rebook for Tuesday",
+    "script": [
+      "Please cancel my Monday 2pm meeting",
+      "Now book it for Tuesday at 2pm instead"
+    ],
+    "wer_note": "Say both lines exactly as written. Two-line task tests whether transcription accuracy holds across a multi-turn exchange.",
+    "expected_tool_calls": [
+      {
+        "name": "cancel_meeting",
+        "expected_args": {
+          "date": ["monday", "Monday"],
+          "time": ["2pm", "2:00 PM", "14:00"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["tuesday", "Tuesday"],
+          "time": ["2pm", "2:00 PM", "14:00"]
+        }
+      }
+    ],
+    "difficulty": "medium",
+    "notes": "Requires two correct sequential tool calls."
+  },
+  {
+    "id": "multistep-02",
+    "category": "multi_step",
+    "description": "Check, book, then cancel and rebook",
+    "script": [
+      "Can you check if Thursday at 11am is free please",
+      "Great, go ahead and book that for 10 people",
+      "Actually cancel that and move the meeting to Friday at 11am instead"
+    ],
+    "wer_note": "Say all three lines exactly. Three-step task — WER is measured per line. 'Thursday' vs 'Friday' in lines 1 and 3 is the key transcription test.",
+    "expected_tool_calls": [
+      {
+        "name": "check_calendar",
+        "expected_args": {
+          "date": ["thursday", "Thursday"],
+          "time": ["11am", "11:00 AM", "11:00"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["thursday", "Thursday"],
+          "time": ["11am", "11:00 AM", "11:00"],
+          "attendees": [10, "10", "ten"]
+        }
+      },
+      {
+        "name": "cancel_meeting",
+        "expected_args": {
+          "date": ["thursday", "Thursday"],
+          "time": ["11am", "11:00 AM", "11:00"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["friday", "Friday"],
+          "time": ["11am", "11:00 AM", "11:00"]
+        }
+      }
+    ],
+    "difficulty": "hard"
+  },
+  {
+    "id": "multistep-03",
+    "category": "multi_step",
+    "description": "Book two back-to-back meetings",
+    "script": [
+      "Please book a standup on Monday at 9am",
+      "And also book a review on Monday at 10am for 5 people"
+    ],
+    "wer_note": "Say both lines exactly. Two times in one session — 9am vs 10am is the critical distinction.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["monday", "Monday"],
+          "time": ["9am", "9:00 AM", "9:00"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["monday", "Monday"],
+          "time": ["10am", "10:00 AM", "10:00"],
+          "attendees": [5, "5", "five"]
+        }
+      }
+    ],
+    "difficulty": "medium"
+  },
+  {
+    "id": "multistep-04",
+    "category": "multi_step",
+    "description": "Cancel all Wednesday meetings then book one",
+    "script": [
+      "Please cancel the Wednesday 10am meeting",
+      "Also cancel the Wednesday 2pm meeting",
+      "Now book a single three-hour block on Wednesday starting at noon"
+    ],
+    "wer_note": "Say all three lines exactly. Two cancellations then one booking — WER measured against each line. 10am and 2pm in lines 1–2 must both be correctly transcribed.",
+    "expected_tool_calls": [
+      {
+        "name": "cancel_meeting",
+        "expected_args": {
+          "date": ["wednesday", "Wednesday"],
+          "time": ["10am", "10:00 AM", "10:00"]
+        }
+      },
+      {
+        "name": "cancel_meeting",
+        "expected_args": {
+          "date": ["wednesday", "Wednesday"],
+          "time": ["2pm", "2:00 PM", "14:00"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["wednesday", "Wednesday"],
+          "time": ["12pm", "12:00 PM", "12:00", "noon"]
+        }
+      }
+    ],
+    "difficulty": "hard"
+  },
+  {
+    "id": "interruption-01",
+    "category": "interruption_recovery",
+    "description": "Interrupt agent mid-response to change a detail",
+    "script": [
+      "Please book a team meeting for next Tuesday at 3pm for 6 people",
+      "[INTERRUPT] Actually make it 4pm not 3pm please"
+    ],
+    "wer_note": "Read line 1 exactly, then press Next Line and immediately interrupt the agent mid-response with line 2 word-for-word. WER is measured on both lines — line 2 tests transcription accuracy during an interruption.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["tuesday", "Tuesday", "next Tuesday"],
+          "time": ["4pm", "4:00 PM", "16:00", "4 pm"],
+          "attendees": [6, "6", "six"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "Read line 1, then interrupt the agent's response with line 2 before it finishes. [INTERRUPT] lines are excluded from WER scoring."
+  },
+  {
+    "id": "interruption-02",
+    "category": "interruption_recovery",
+    "description": "Interrupt to change the attendee count",
+    "script": [
+      "Please schedule a review session for Thursday at 2pm for 20 people",
+      "[INTERRUPT] Sorry, that should be only 8 people not 20"
+    ],
+    "wer_note": "Read line 1 exactly, then interrupt with line 2 word-for-word. Key WER numbers: 20 vs 8.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["thursday", "Thursday"],
+          "time": ["2pm", "2:00 PM", "14:00"],
+          "attendees": [8, "8", "eight"]
+        }
+      }
+    ],
+    "difficulty": "hard"
+  },
+  {
+    "id": "interruption-03",
+    "category": "interruption_recovery",
+    "description": "Interrupt to change the day",
+    "script": [
+      "Please book the main conference room for Friday at 10am",
+      "[INTERRUPT] I meant Thursday not Friday, sorry about that"
+    ],
+    "wer_note": "Read line 1 exactly, then interrupt with line 2. Thursday vs Friday under mid-response noise is the key transcription challenge.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["thursday", "Thursday", "next Thursday"],
+          "time": ["10am", "10:00 AM", "10:00"]
+        }
+      }
+    ],
+    "difficulty": "hard"
+  },
+  {
+    "id": "interruption-04",
+    "category": "interruption_recovery",
+    "description": "Multiple interruptions in one session",
+    "script": [
+      "Can you check if Monday at 2pm works for a 10-person meeting",
+      "[INTERRUPT] Actually change that to 3pm please",
+      "[INTERRUPT] And make it only 5 people not 10"
+    ],
+    "wer_note": "Two consecutive interruptions. Each [INTERRUPT] line is said mid-agent-response. Numbers 2pm→3pm and 10→5 must both be transcribed correctly across the interruptions.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["monday", "Monday"],
+          "time": ["3pm", "3:00 PM", "15:00"],
+          "attendees": [5, "5", "five"]
+        }
+      }
+    ],
+    "difficulty": "hard"
+  },
+  {
+    "id": "echo-long-response-01",
+    "category": "echo_survival",
+    "description": "Trigger a long agent response, stay silent, then give a short follow-up",
+    "script": [
+      "Can you tell me about all the available meeting rooms, their capacity, and which floors they're on",
+      "[WAIT 8 SECONDS]",
+      "Please book the largest available room for Friday at 2pm"
+    ],
+    "wer_note": "Say line 1 exactly, then stay completely silent during the 8-second wait while the agent speaks. Say line 3 exactly. Line 3 WER tests whether your voice is transcribed cleanly after the agent echo has settled.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["friday", "Friday", "next Friday"],
+          "time": ["2pm", "2:00 PM", "14:00"]
+        }
+      }
+    ],
+    "difficulty": "echo",
+    "notes": "First line triggers a long response. Stay completely silent while agent talks. Echo from agent should NOT cause interruption. Second line tests if the conversation state survived."
+  },
+  {
+    "id": "echo-back-to-back-01",
+    "category": "echo_survival",
+    "description": "Two exchanges where agent talks at length each time",
+    "script": [
+      "What does my schedule look like for next week? Give me a full detailed rundown please",
+      "[WAIT 5 SECONDS]",
+      "Please cancel all of my meetings on Wednesday",
+      "[WAIT 3 SECONDS]",
+      "Now tell me what Wednesday looks like after those cancellations"
+    ],
+    "wer_note": "Stay silent during [WAIT] periods while the agent speaks. Say lines 1, 3, 5 exactly. Each spoken line follows a period of agent echo — this tests transcription accuracy under cumulative reverb.",
+    "expected_tool_calls": [
+      {
+        "name": "cancel_meeting",
+        "expected_args": {
+          "date": ["wednesday", "Wednesday", "next Wednesday"]
+        }
+      }
+    ],
+    "difficulty": "echo",
+    "notes": "Three turns with long agent responses between each. Maximum echo exposure. The cancel call must have the correct day despite echo from prior responses."
+  },
+  {
+    "id": "echo-quiet-then-speak-01",
+    "category": "echo_survival",
+    "description": "Long silence after agent speaks, then a precise request",
+    "script": [
+      "Can you explain how the booking system works in detail please",
+      "[WAIT 7 SECONDS]",
+      "Please book room B2 for Tuesday at 10am for 4 people"
+    ],
+    "wer_note": "Stay completely silent during the 7-second wait. Say line 3 exactly — it contains room name, day, time, and count. This tests clean transcription after reverb tail from a long agent response.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["tuesday", "Tuesday"],
+          "time": ["10am", "10:00 AM", "10:00"],
+          "attendees": [4, "4", "four"],
+          "name": ["B2", "room B2", "b2"]
+        }
+      }
+    ],
+    "difficulty": "echo",
+    "notes": "The 5-second wait after agent finishes tests whether residual echo/reverb tail causes late false triggers. The precise booking request after the wait tests if the full conversation context is intact."
+  },
+  {
+    "id": "echo-number-after-echo-01",
+    "category": "echo_survival",
+    "description": "Agent says numbers, echo bounces, user says different numbers",
+    "script": [
+      "Can you check if there's anything booked at 3pm on Thursday for 12 people",
+      "[WAIT 3 SECONDS]",
+      "No please change that to 5pm on Thursday for only 8 people"
+    ],
+    "wer_note": "Stay silent during the wait. Say lines 1 and 3 exactly. The agent's echo will repeat '3pm' and '12 people'. You then say '5pm' and '8 people' — transcription must capture YOUR numbers, not the echoed ones. This is the primary number-confusion echo test.",
+    "expected_tool_calls": [
+      {
+        "name": "check_calendar",
+        "expected_args": {
+          "date": ["thursday", "Thursday"],
+          "time": ["3pm", "3:00 PM", "15:00"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "time": ["5pm", "5:00 PM", "17:00"],
+          "attendees": [8, "8", "eight"]
+        }
+      }
+    ],
+    "difficulty": "echo",
+    "notes": "The agent echoes back 3pm and 12 people. You then correct to 5pm and 8 people. Tests whether the model confuses echoed numbers with your correction."
+  },
+  {
+    "id": "transcription-01",
+    "category": "transcription",
+    "description": "Phonetically rich sentence with numbers and names",
+    "script": [
+      "Please book a meeting for thirteen people on Thursday the fourteenth at a quarter past three in the afternoon"
+    ],
+    "wer_note": "Read this sentence EXACTLY as written — it is the sole WER ground truth. Contains: written-out numbers (thirteen, fourteenth, quarter past three), a day name, and time expressed in words rather than digits. Read clearly at normal pace.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["thursday", "Thursday", "the fourteenth"],
+          "time": ["3:15", "3:15 PM", "15:15", "quarter past three"],
+          "attendees": [13, "13", "thirteen"]
+        }
+      }
+    ],
+    "difficulty": "medium",
+    "notes": "Purpose-built WER stress test. The sentence is long and phonetically rich. Under noise, numbers-as-words are harder to transcribe than digits. Compare Raw vs VF WER on this task."
+  },
+  {
+    "id": "transcription-02",
+    "category": "transcription",
+    "description": "Similar-sounding days and times in one sentence",
+    "script": [
+      "Can you check if Tuesday the seventh and Thursday the ninth are both free at two thirty in the afternoon"
+    ],
+    "wer_note": "Read exactly as written. Contains two similar-sounding days (Tuesday/Thursday) and ordinal numbers (seventh/ninth) — classic mishearing pairs under noise. One sentence, one WER measurement.",
+    "expected_tool_calls": [
+      {
+        "name": "check_calendar",
+        "expected_args": {
+          "date": ["tuesday", "Tuesday"],
+          "time": ["2:30", "2:30 PM", "14:30", "two thirty"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "Tuesday vs Thursday and seventh vs ninth — two phonetically similar pairs in a single sentence. WER will spike under noise as the model confuses them."
+  },
+  {
+    "id": "transcription-03",
+    "category": "transcription",
+    "description": "Names, spelling, and a precise time in one sentence",
+    "script": [
+      "Update the contact name from Kowalski to Kowalczyk and book them in for Wednesday at half past four"
+    ],
+    "wer_note": "Read exactly as written. Two Polish surnames (Kowalski vs Kowalczyk — differ by suffix only) plus a time expressed as 'half past four'. A perfect WER sentence: proper nouns plus natural language time.",
+    "expected_tool_calls": [
+      {
+        "name": "update_contact_name",
+        "expected_args": {
+          "old_name": ["Kowalski", "kowalski"],
+          "new_name": ["Kowalczyk", "kowalczyk"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["wednesday", "Wednesday"],
+          "time": ["4:30", "4:30 PM", "16:30", "half past four"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "Kowalski vs Kowalczyk differ only at the suffix — transcription must get the full name correct. Also tests natural language time ('half past four') vs digit format."
+  },
+  {
+    "id": "transcription-04",
+    "category": "transcription",
+    "description": "Long precise sentence with maximum phonetic density",
+    "script": [
+      "I need to cancel the Friday afternoon meeting at a quarter to five and rebook it for Monday morning at nine fifteen for sixteen people in the Vega room"
+    ],
+    "wer_note": "Hardest WER sentence in the suite. Read EXACTLY as written at normal pace. Contains: two days, two complex times (quarter to five, nine fifteen), a written-out attendee count (sixteen), and a room name (Vega). Every word counts toward WER. Run this task under all three audio modes and compare.",
+    "expected_tool_calls": [
+      {
+        "name": "cancel_meeting",
+        "expected_args": {
+          "date": ["friday", "Friday"],
+          "time": ["4:45", "4:45 PM", "16:45", "quarter to five"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["monday", "Monday"],
+          "time": ["9:15", "9:15 AM", "9:15", "nine fifteen"],
+          "attendees": [16, "16", "sixteen"],
+          "name": ["Vega", "vega", "Vega room"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "Maximum phonetic density. Purpose-built to show the largest WER delta between Raw and VF modes. Use this as the headline benchmark sentence."
+  },
+
+  {
+    "id": "aggressive-01",
+    "category": "aggressive_caller",
+    "description": "Impatient caller — books a time then immediately corrects it twice",
+    "script": [
+      "Book me Tuesday at three",
+      "[INTERRUPT] No, make it four not three",
+      "[INTERRUPT] And for eight people — not whatever number you said"
+    ],
+    "wer_note": "Use clipped delivery — no please, no thank you, impatient pace. Line 1 is the WER ground truth. [INTERRUPT] lines are said mid-agent-response without waiting.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["tuesday", "Tuesday"],
+          "time": ["4pm", "4:00 PM", "16:00", "four"],
+          "attendees": [8, "8", "eight"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "Aggressive/impatient persona. Short clipped sentences, no politeness. Interrupt as early as possible mid-agent-response. Tests whether the model can track rapid corrections without getting confused."
+  },
+  {
+    "id": "aggressive-02",
+    "category": "aggressive_caller",
+    "description": "Cancel, then change mind mid-response, then add another booking",
+    "script": [
+      "Cancel my Monday ten am meeting",
+      "[INTERRUPT] Actually leave it, just move it to eleven",
+      "And also book Thursday at two for four people"
+    ],
+    "wer_note": "Read lines 1 and 3 exactly as written. Line 2 is an interruption mid-agent-response — say it before the agent finishes. Key WER: Monday/Thursday, ten/eleven/two, four people.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["monday", "Monday"],
+          "time": ["11am", "11:00 AM", "11:00", "eleven"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["thursday", "Thursday"],
+          "time": ["2pm", "2:00 PM", "14:00"],
+          "attendees": [4, "4", "four"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "Caller changes mind mid-cancellation then stacks a second request. Tests multi-task handling under impatient delivery with an interruption in the middle."
+  },
+  {
+    "id": "aggressive-03",
+    "category": "aggressive_caller",
+    "description": "Rapid correction chain — time and attendee count both wrong",
+    "script": [
+      "Schedule a meeting for next Friday at nine thirty for six people",
+      "[INTERRUPT] Nine fifteen not nine thirty",
+      "[INTERRUPT] And it is four people not six, please just listen",
+      "Can you confirm when you have done it"
+    ],
+    "wer_note": "Line 1 and line 4 are WER ground truths — read exactly as written. Lines 2 and 3 are interruptions delivered with visible frustration. Key numbers: nine thirty→nine fifteen, six→four.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["friday", "Friday", "next Friday"],
+          "time": ["9:15", "9:15 AM", "nine fifteen"],
+          "attendees": [4, "4", "four"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "Two rapid corrections delivered with frustration. Tests whether the model correctly accumulates the final state (9:15, 4 people) after two overrides."
+  },
+  {
+    "id": "aggressive-04",
+    "category": "aggressive_caller",
+    "description": "Name correction argument — Johnston with T vs Johnson without",
+    "script": [
+      "Update the contact from Johnston to Johnson",
+      "[INTERRUPT] No I said Johnston with a T, J-O-H-N-S-T-O-N, keep it as Johnston",
+      "And book them in for Wednesday at three pm"
+    ],
+    "wer_note": "Line 1 and 3 are WER ground truths — read exactly as written. Line 2 is an interruption. Critical WER pair: Johnston vs Johnson (one letter difference). The spelling in line 2 must be captured correctly.",
+    "expected_tool_calls": [
+      {
+        "name": "update_contact_name",
+        "expected_args": {
+          "old_name": ["Johnston", "johnston"],
+          "new_name": ["Johnston", "johnston"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["wednesday", "Wednesday"],
+          "time": ["3pm", "3:00 PM", "15:00"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "Caller corrects the agent mid-response — the name is actually staying the same (Johnston), not changing to Johnson. Tests whether the model can handle a correction that reverts to the original. WER focuses on the near-homophone Johnston/Johnson."
+  },
+
+  {
+    "id": "noisy-roadside-01",
+    "category": "noisy_environment",
+    "description": "Simple booking with continuous office background chatter",
+    "script": [
+      "Hello, I need to book a meeting room for Monday at two pm please",
+      "Yes, go ahead and confirm the booking"
+    ],
+    "wer_note": "Read each line exactly as written at slightly raised volume (outdoor voice). Background: ask 2–3 colleagues to chat naturally at 2 metres distance throughout the whole task — this simulates street/ambient noise.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["monday", "Monday"],
+          "time": ["2pm", "2:00 PM", "14:00"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "SETUP: have 2–3 colleagues hold a normal conversation at 2m distance while you do this task. Speak at normal-to-raised volume as if outdoors. This simulates a roadside or street environment without needing to go outside."
+  },
+  {
+    "id": "noisy-roadside-02",
+    "category": "noisy_environment",
+    "description": "Fifteen vs thirteen correction under ambient noise",
+    "script": [
+      "Please book a room for fifteen people on Wednesday at eleven am",
+      "Actually I need to change that to thirteen people, not fifteen — same day same time"
+    ],
+    "wer_note": "Read both lines exactly at raised volume over background chatter. The critical pair is fifteen/thirteen — both 2-syllable number words that sound similar under noise. Background: colleagues chatting at 2 metres.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["wednesday", "Wednesday"],
+          "time": ["11am", "11:00 AM", "11:00"],
+          "attendees": [13, "13", "thirteen"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "SETUP: continuous background conversation at 2m. Fifteen vs thirteen is the primary WER stress test — both are easily confused under noise. Compare Raw vs VF WER specifically on these two numbers."
+  },
+  {
+    "id": "noisy-roadside-03",
+    "category": "noisy_environment",
+    "description": "Spelling a Japanese name over background chatter",
+    "script": [
+      "The contact name is Yamamoto, can you find their booking",
+      "That is Y-A-M-A-M-O-T-O, Yamamoto",
+      "Please book them in for Thursday at noon"
+    ],
+    "wer_note": "Read all three lines exactly at raised outdoor volume. The spelling line is the key WER challenge — each letter must be captured over background noise. SETUP: colleagues chatting at 2m throughout.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["thursday", "Thursday"],
+          "time": ["12pm", "12:00 PM", "noon", "12:00"],
+          "name": ["Yamamoto", "yamamoto", "YAMAMOTO"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "SETUP: continuous background conversation at 2m. Repeated-syllable names (Yamamoto, Ma-ma-mo-to pattern) are particularly vulnerable to mis-transcription under noise. The spelling fallback in line 2 tests whether letter-by-letter recovery still works in a noisy environment."
+  },
+  {
+    "id": "noisy-roadside-04",
+    "category": "noisy_environment",
+    "description": "Multi-step task over sustained loud background",
+    "script": [
+      "Cancel the Friday four pm meeting please",
+      "And book a replacement for Monday at four pm for ten people",
+      "The name on the booking is Nakamura, that is N-A-K-A-M-U-R-A"
+    ],
+    "wer_note": "Read all three lines exactly at outdoor voice level. SETUP: have 2 colleagues increase chatter volume for lines 2 and 3 (simulating louder traffic burst). Key WER: Friday/Monday, four/ten, Nakamura spelling.",
+    "expected_tool_calls": [
+      {
+        "name": "cancel_meeting",
+        "expected_args": {
+          "date": ["friday", "Friday"],
+          "time": ["4pm", "4:00 PM", "16:00"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["monday", "Monday"],
+          "time": ["4pm", "4:00 PM", "16:00"],
+          "attendees": [10, "10", "ten"],
+          "name": ["Nakamura", "nakamura", "NAKAMURA"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "SETUP: 2–3 colleagues chatting at 2m, louder from line 2 onward. Three-step task under noise — tests whether multi-turn accuracy holds when every response must be given at raised volume over a sustained noise floor."
+  },
+
+  {
+    "id": "distracted-01",
+    "category": "distracted_caller",
+    "description": "Caller cut off by kids, then resumes booking request",
+    "script": [
+      "I need to book a team meeting for—",
+      "[WAIT 3 SECONDS]",
+      "Sorry about that — book it for Tuesday at three pm for five people please"
+    ],
+    "wer_note": "Say line 1, then stop mid-sentence. During the 3-second wait have a colleague shout something briefly (simulating a child interrupting). Then say line 3 exactly — it is the WER ground truth. Key: Tuesday, three pm, five people.",
+    "expected_tool_calls": [
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["tuesday", "Tuesday"],
+          "time": ["3pm", "3:00 PM", "15:00"],
+          "attendees": [5, "5", "five"]
+        }
+      }
+    ],
+    "difficulty": "medium",
+    "notes": "SETUP: a colleague briefly shouts something during the [WAIT] pause (one or two words, child-like). Simulates a caller being interrupted by a child. Tests whether the VAD gate stays closed during the background shout and re-opens cleanly for line 3."
+  },
+  {
+    "id": "distracted-02",
+    "category": "distracted_caller",
+    "description": "Caller has to repeat availability check — background voice covered the first attempt",
+    "script": [
+      "Can you check if Wednesday at two is available please",
+      "[WAIT 2 SECONDS]",
+      "Wednesday at two I said — is it available",
+      "Great, please go ahead and book it"
+    ],
+    "wer_note": "Say lines 1, 3, and 4 exactly. During the [WAIT] pause a colleague makes noise (simulates a child — say something short like 'Mum!' or 'Dad!'). Line 3 is a deliberate repeat — WER should be identical on lines 1 and 3 if transcription is consistent.",
+    "expected_tool_calls": [
+      {
+        "name": "check_calendar",
+        "expected_args": {
+          "date": ["wednesday", "Wednesday"],
+          "time": ["2pm", "2:00 PM", "14:00", "two"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["wednesday", "Wednesday"],
+          "time": ["2pm", "2:00 PM", "14:00"]
+        }
+      }
+    ],
+    "difficulty": "medium",
+    "notes": "SETUP: colleague shouts one short phrase during the [WAIT]. The repeat in line 3 (same words as line 1) lets you compare WER consistency across two utterances of the same phrase. If VF+Gate is working the repeat should score similar to the first attempt."
+  },
+  {
+    "id": "distracted-03",
+    "category": "distracted_caller",
+    "description": "Spelling a name while being continuously distracted",
+    "script": [
+      "Update the contact name to Nakamura please, that is N-A-K-A-M-U-R-A",
+      "[WAIT 2 SECONDS]",
+      "Did you get that? Nakamura — N-A-K-A-M-U-R-A",
+      "Good, and book them in for Friday at four pm"
+    ],
+    "wer_note": "Say lines 1, 3, and 4 exactly. During [WAIT] a colleague makes a child-like noise. Lines 1 and 3 are the same spelling — WER should match if transcription is stable. Line 4 is the closing booking. SETUP: colleague noise in [WAIT] gap.",
+    "expected_tool_calls": [
+      {
+        "name": "update_contact_name",
+        "expected_args": {
+          "new_name": ["Nakamura", "nakamura", "NAKAMURA"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["friday", "Friday"],
+          "time": ["4pm", "4:00 PM", "16:00"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "SETUP: colleague makes noise (child sounds) during the [WAIT]. Repeated spelling under distraction — the model must correctly handle a re-stated contact name update as a repeat, not two separate update_contact_name calls."
+  },
+  {
+    "id": "distracted-04",
+    "category": "distracted_caller",
+    "description": "Multi-step task with two background noise interruptions",
+    "script": [
+      "Please cancel the Tuesday nine am meeting",
+      "[WAIT 2 SECONDS]",
+      "And book it for Wednesday at nine am instead please",
+      "[WAIT 2 SECONDS]",
+      "How many people does the Vega room hold?",
+      "Okay great, book the Vega room for Wednesday nine am for six people then"
+    ],
+    "wer_note": "Read lines 1, 3, 5, and 6 exactly. [WAIT] gaps have colleague background noise. Lines involve two days (Tuesday/Wednesday), a room name (Vega), and attendee count (six). SETUP: loud brief noise from a colleague during each [WAIT] gap.",
+    "expected_tool_calls": [
+      {
+        "name": "cancel_meeting",
+        "expected_args": {
+          "date": ["tuesday", "Tuesday"],
+          "time": ["9am", "9:00 AM", "9:00"]
+        }
+      },
+      {
+        "name": "book_meeting",
+        "expected_args": {
+          "date": ["wednesday", "Wednesday"],
+          "time": ["9am", "9:00 AM", "9:00"],
+          "attendees": [6, "6", "six"],
+          "name": ["Vega", "vega", "Vega room"]
+        }
+      }
+    ],
+    "difficulty": "hard",
+    "notes": "SETUP: colleague makes a brief loud noise during each [WAIT] pause (simulates kids). Tests full multi-turn task integrity when two noise events punctuate the conversation. The final booking in line 6 requires the model to have retained day, time, room, and count across all the chaos."
+  }
+]

@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Benchmark Replay · Quail VF 2.1</title>
+<style>
+  :root {
+    --bg:#0F0F0F; --panel:#1A1919; --panel2:#202020;
+    --border:#333; --text-pri:#F9F9F9; --text-sec:#DEDEDE; --text-ter:#666;
+    --accent:#6993FF; --green:#34d399; --orange:#fb923c; --red:#f87171; --purple:#b77db8;
+    --font:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--bg);color:var(--text-pri);font-family:var(--font);font-size:13px;-webkit-font-smoothing:antialiased}
+
+  /* ── Drop zone ── */
+  #drop-zone{
+    height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:14px;border:2px dashed var(--border);margin:24px;border-radius:16px;
+    color:var(--text-ter);transition:border-color .2s,background .2s;
+  }
+  #drop-zone.drag-over{border-color:var(--accent);background:rgba(105,147,255,.05)}
+  #drop-zone h2{color:var(--text-sec);font-size:26px;font-weight:300;letter-spacing:-0.5px}
+  #drop-zone p{font-size:12px}
+  #drop-zone code{font-family:var(--mono);color:var(--accent)}
+  .pick-btn{padding:9px 20px;background:var(--accent);border:none;border-radius:8px;color:white;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.4px}
+
+  /* ── App layout ── */
+  #app{display:none;height:100vh;overflow:hidden}
+  .layout{display:flex;height:100%}
+
+  /* ── Sidebar ── */
+  .sidebar{width:270px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+  .sidebar-hdr{
+    padding:12px 16px;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;
+    font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-ter);
+    position:sticky;top:0;background:var(--bg);z-index:1;
+  }
+  .sidebar-count{font-family:var(--mono);font-size:13px;color:var(--text-sec)}
+  .run-item{
+    padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;
+    display:flex;flex-direction:column;gap:4px;transition:background .15s;
+  }
+  .run-item:hover{background:var(--panel)}
+  .run-item.active{background:var(--panel);border-left:2px solid var(--accent)}
+  .ri-id{font-family:var(--mono);font-size:11px;color:var(--text-sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ri-meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+  .ri-mode{font-size:10px;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+  .ri-pass{font-family:var(--mono);font-size:12px;font-weight:700}
+  .ri-stat{font-size:10px;color:var(--text-ter);font-family:var(--mono)}
+  .pass{color:var(--green)} .fail{color:var(--red)} .unknown{color:var(--text-ter)}
+  .mode-raw{color:var(--orange)} .mode-enhance{color:var(--accent)} .mode-gate{color:var(--green)}
+
+  /* ── Main area ── */
+  .main{flex:1;overflow-y:auto;padding:22px 26px}
+  #run-placeholder{height:60vh;display:flex;align-items:center;justify-content:center;color:var(--text-ter);font-size:14px}
+
+  /* ── Run header ── */
+  .run-hdr{display:flex;align-items:baseline;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+  .run-hdr h2{font-size:20px;font-weight:300;letter-spacing:-.3px}
+  .tag{display:inline-flex;padding:3px 9px;border-radius:6px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;border:1px solid var(--border);font-family:var(--mono)}
+  .ts-label{font-size:11px;color:var(--text-ter);margin-left:auto}
+
+  /* ── Metrics grid ── */
+  .metrics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:9px;margin-bottom:18px}
+  .mc{padding:11px 13px;background:var(--panel);border:1px solid var(--border);border-radius:10px}
+  .mc-label{font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--text-ter);margin-bottom:4px}
+  .mc-val{font-size:20px;font-weight:300;font-family:var(--mono)}
+  .mc-val.pass-val{color:var(--green)} .mc-val.fail-val{color:var(--red)}
+
+  /* ── Section headers ── */
+  .sec-hdr{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-ter);margin:18px 0 9px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+  /* ── Timeline ── */
+  .tl-wrap{background:#111;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:6px}
+  .tl-wrap canvas{display:block;width:100%;cursor:crosshair}
+  .tl-legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;padding:2px 2px}
+  .tl-legend span{font-size:10px;color:var(--text-ter);display:flex;align-items:center;gap:5px}
+  .tl-legend .dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+  .no-tl{padding:16px;color:var(--text-ter);font-size:12px;font-style:italic}
+
+  /* ── Transcripts ── */
+  .tx-pair{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:8px}
+  .tx-box{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+  .tx-label{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-ter);margin-bottom:6px}
+  .tx-text{font-size:12px;line-height:1.6;color:var(--text-sec)}
+  .tx-wer{margin-top:7px;font-family:var(--mono);font-size:11px;font-weight:600}
+  .wer-good{color:var(--green)} .wer-ok{color:var(--orange)} .wer-bad{color:var(--red)}
+
+  /* ── Tool calls ── */
+  .tool-call{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 13px;margin-bottom:8px}
+  .tool-name{font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:7px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .tool-args{display:flex;flex-wrap:wrap;gap:6px}
+  .tool-arg{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:4px}
+  .tool-arg.match{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.4);color:var(--green)}
+  .tool-arg.mismatch{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.4);color:var(--red)}
+  .tool-arg.neutral{border:1px solid var(--border);color:var(--text-sec)}
+
+  /* ── Event log ── */
+  .elog{height:220px;overflow-y:auto;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:var(--mono);font-size:11px;line-height:1.6}
+  .el{display:flex;gap:10px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+  .el-t{color:var(--text-ter);flex-shrink:0;min-width:50px}
+  .el-type{flex-shrink:0;font-weight:600;min-width:160px}
+  .el-data{color:var(--text-sec);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ec-blue{color:var(--accent)} .ec-green{color:var(--green)} .ec-orange{color:var(--orange)}
+  .ec-red{color:var(--red)} .ec-purple{color:var(--purple)} .ec-gray{color:var(--text-ter)}
+  .no-data{color:var(--text-ter);font-style:italic;font-size:12px;padding:10px 0}
+
+  @media(max-width:700px){
+    .sidebar{width:100%;height:auto;max-height:40vh;border-right:none;border-bottom:1px solid var(--border)}
+    .layout{flex-direction:column}
+    .tx-pair{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- Drop zone -->
+<div id="drop-zone">
+  <h2>Benchmark Replay</h2>
+  <p>Drop an exported <code>.json</code> file here</p>
+  <button class="pick-btn" id="pick-btn">Pick file…</button>
+  <input type="file" id="file-input" accept=".json" style="display:none"/>
+  <p>Export from the main app with <strong>↓ Export JSON</strong>, then open this page.</p>
+</div>
+
+<!-- App -->
+<div id="app">
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sidebar-hdr">
+        <span>Runs</span>
+        <span class="sidebar-count" id="run-count">0</span>
+      </div>
+      <div id="run-list"></div>
+    </div>
+    <div class="main">
+      <div id="run-placeholder">← select a run</div>
+      <div id="run-content" style="display:none">
+        <div class="run-hdr" id="run-hdr"></div>
+        <div class="metrics-grid" id="metrics-grid"></div>
+        <div class="sec-hdr">Timeline</div>
+        <div class="tl-wrap" id="tl-wrap"><canvas id="tl-canvas" height="200"></canvas></div>
+        <div class="tl-legend">
+          <span><span class="dot" style="background:#34d399"></span>Gate gain</span>
+          <span><span class="dot" style="background:rgba(248,113,113,.7)"></span>Agent speaking</span>
+          <span><span class="dot" style="background:rgba(105,147,255,.7)"></span>VAD speech</span>
+          <span><span class="dot" style="background:#fb923c"></span>User transcript</span>
+          <span><span class="dot" style="background:#34d399;opacity:.6"></span>Agent transcript</span>
+          <span><span class="dot" style="background:#b77db8"></span>Tool call</span>
+        </div>
+        <div class="sec-hdr">Transcripts — reference vs transcribed</div>
+        <div id="transcripts-wrap"></div>
+        <div class="sec-hdr">Tool Calls</div>
+        <div id="tool-calls-wrap"></div>
+        <div class="sec-hdr">Timeline Events</div>
+        <div class="elog" id="event-log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let allRuns = [];
+let selectedIdx = null;
+
+// ── File loading ───────────────────────────────────────────────────────────────
+const $drop = document.getElementById("drop-zone");
+const $app  = document.getElementById("app");
+document.getElementById("pick-btn").addEventListener("click", () => document.getElementById("file-input").click());
+document.getElementById("file-input").addEventListener("change", e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+$drop.addEventListener("dragover", e => { e.preventDefault(); $drop.classList.add("drag-over"); });
+$drop.addEventListener("dragleave", () => $drop.classList.remove("drag-over"));
+$drop.addEventListener("drop", e => {
+  e.preventDefault(); $drop.classList.remove("drag-over");
+  const f = e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+
+// ── Normalise ─────────────────────────────────────────────────────────────────
+// Converts a log.json sidecar (prefix, duration_s, user_transcripts:string[])
+// to the same shape as a benchmark export run.
+function normalizeRun(run) {
+  const isSidecar = !run.task_id && run.prefix;
+  if (!isSidecar) return run;
+  return {
+    task_id: run.prefix || 'recording',
+    category: 'manual',
+    audio_mode: run.audio_mode || 'raw',
+    vf_enabled: run.audio_mode !== 'raw',
+    timestamp: run.started,
+    duration_s: run.duration_s,
+    task_passed: null,
+    wer_average: null,
+    self_interruptions: null,
+    avg_latency_ms: null,
+    agent_responses_total: null,
+    agent_completion_rate: null,
+    vad_gate_hold_ms: null,
+    tool_calls: [],
+    // string[] → [{ref, hyp, wer}] with ref='-' and wer=null (no ground truth in free recordings)
+    user_transcripts: (run.user_transcripts || []).map(t =>
+      typeof t === 'string' ? { ref: '—', hyp: t, wer: null } : t),
+    agent_transcripts: run.agent_transcripts || [],
+    timeline: run.timeline || [],
+    condition_notes: ''
+  };
+}
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      allRuns = (Array.isArray(data) ? data : [data]).map(normalizeRun);
+      $drop.style.display = "none";
+      $app.style.display = "block";
+      renderRunList();
+      if (allRuns.length === 1) selectRun(0);
+    } catch(err) { alert("Invalid JSON: " + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+// ── Run list ───────────────────────────────────────────────────────────────────
+function renderRunList() {
+  document.getElementById("run-count").textContent = allRuns.length;
+  const $list = document.getElementById("run-list");
+  $list.innerHTML = "";
+  allRuns.forEach((run, i) => {
+    const mode = run.audio_mode || (run.vf_enabled ? "enhance" : "raw");
+    const modeLabel = mode === "gate" ? "VF+Gate" : mode === "enhance" ? "VF" : "Raw";
+    const modeClass = mode === "gate" ? "mode-gate" : mode === "enhance" ? "mode-enhance" : "mode-raw";
+    const passClass = run.task_passed === true ? "pass" : run.task_passed === false ? "fail" : "unknown";
+    const passLabel = run.task_passed === true ? "✓" : run.task_passed === false ? "✗" : "?";
+    const wer = run.wer_average != null ? (run.wer_average * 100).toFixed(1) + "%" : "";
+    const lat = run.avg_latency_ms != null ? run.avg_latency_ms + "ms" : "";
+    const div = document.createElement("div");
+    div.className = "run-item";
+    div.innerHTML = `
+      <div class="ri-id">#${i+1} ${esc(run.task_id)}</div>
+      <div class="ri-meta">
+        <span class="ri-mode ${modeClass}">${modeLabel}</span>
+        <span class="ri-pass ${passClass}">${passLabel}</span>
+        ${wer ? `<span class="ri-stat">${wer} WER</span>` : ""}
+        ${lat ? `<span class="ri-stat">${lat}</span>` : ""}
+      </div>`;
+    div.addEventListener("click", () => selectRun(i));
+    $list.appendChild(div);
+  });
+}
+
+function selectRun(i) {
+  selectedIdx = i;
+  document.querySelectorAll(".run-item").forEach((el, j) => el.classList.toggle("active", j === i));
+  document.getElementById("run-placeholder").style.display = "none";
+  document.getElementById("run-content").style.display = "";
+  renderRun(allRuns[i]);
+}
+
+// ── Run detail ────────────────────────────────────────────────────────────────
+function renderRun(run) {
+  renderHeader(run);
+  renderMetrics(run);
+  renderTimeline(run);
+  renderTranscripts(run);
+  renderToolCalls(run);
+  renderEventLog(run);
+}
+
+function renderHeader(run) {
+  const mode = run.audio_mode || (run.vf_enabled ? "enhance" : "raw");
+  const modeLabel = mode === "gate" ? "VF+Gate" : mode === "enhance" ? "VF" : "Raw";
+  const modeColor = mode === "gate" ? "var(--green)" : mode === "enhance" ? "var(--accent)" : "var(--orange)";
+  const passColor = run.task_passed === true ? "var(--green)" : run.task_passed === false ? "var(--red)" : "var(--text-ter)";
+  const ts = run.timestamp ? new Date(run.timestamp).toLocaleString() : "";
+  document.getElementById("run-hdr").innerHTML = `
+    <h2>${esc(run.task_id)}</h2>
+    <span class="tag" style="color:${modeColor}">${modeLabel}</span>
+    <span class="tag" style="color:${passColor}">${run.task_passed === true ? "✓ PASS" : run.task_passed === false ? "✗ FAIL" : "?"}</span>
+    ${run.category ? `<span class="tag">${esc(run.category)}</span>` : ""}
+    ${ts ? `<span class="ts-label">${ts}</span>` : ""}`;
+}
+
+function renderMetrics(run) {
+  const cards = [
+    { label: "Task",         val: run.task_passed === true ? "✓ PASS" : run.task_passed === false ? "✗ FAIL" : "—",
+      cls: run.task_passed === true ? "pass-val" : run.task_passed === false ? "fail-val" : "" },
+    { label: "Avg WER",      val: run.wer_average != null ? (run.wer_average*100).toFixed(1)+"%" : "—" },
+    { label: "Interruptions",val: run.self_interruptions ?? "—" },
+    { label: "Avg latency",  val: run.avg_latency_ms != null ? run.avg_latency_ms+"ms" : "—" },
+    { label: "Responses",    val: run.agent_responses_total ?? "—" },
+    { label: "Completion",   val: run.agent_completion_rate != null ? (run.agent_completion_rate*100).toFixed(0)+"%" : "—" },
+  ];
+  if (run.vad_gate_hold_ms != null) cards.push({ label: "Gate hold", val: run.vad_gate_hold_ms+"ms" });
+  document.getElementById("metrics-grid").innerHTML = cards.map(c =>
+    `<div class="mc"><div class="mc-label">${c.label}</div><div class="mc-val ${c.cls||""}">${c.val}</div></div>`
+  ).join("");
+}
+
+// ── Timeline canvas ───────────────────────────────────────────────────────────
+function renderTimeline(run) {
+  const $wrap = document.getElementById("tl-wrap");
+  const tl = run.timeline;
+  if (!tl || !tl.length) {
+    $wrap.innerHTML = `<div class="no-tl">No timeline data — run with the current version to capture timelines.</div>`;
+    return;
+  }
+  $wrap.innerHTML = `<canvas id="tl-canvas" height="200"></canvas>`;
+  const cvs = document.getElementById("tl-canvas");
+  cvs.width = $wrap.offsetWidth || 800;
+  drawTimeline(cvs, tl);
+}
+
+function drawTimeline(canvas, tl) {
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  ctx.fillStyle = "#111"; ctx.fillRect(0, 0, W, H);
+
+  const snaps = tl.filter(e => e.type === "snapshot" || e.type === "s");
+  if (!snaps.length) return;
+  const maxT = tl[tl.length - 1].t || 1;
+  // Support both legacy keys (gain/agent/vad) and compact keys (g/a/v)
+  const sg = s => s.g  ?? s.gain  ?? 0;
+  const sa = s => s.a  ?? (s.agent  ? 1 : 0);
+  const sv = s => s.v  ?? (s.vad    ? 1 : 0);
+
+  // Layout
+  const PL = 54, PR = 10, PB = 22;
+  const DW = W - PL - PR;
+  const tx = t => PL + (t / maxT) * DW;
+
+  // Lane: [yTop, height]
+  const GATE = [6,  44];
+  const AGNT = [56, 14];
+  const VAD  = [74, 14];
+  const EVTS = [94, H - PB - 94];
+
+  // Lane labels
+  ctx.font = "9px ui-monospace,monospace";
+  ctx.fillStyle = "#555";
+  ctx.textAlign = "right";
+  ctx.fillText("Gate",  PL-4, GATE[0]+GATE[1]/2+3);
+  ctx.fillText("Agent", PL-4, AGNT[0]+AGNT[1]/2+3);
+  ctx.fillText("VAD",   PL-4, VAD[0]+VAD[1]/2+3);
+  ctx.fillText("Events",PL-4, EVTS[0]+9);
+  ctx.textAlign = "left";
+
+  // Lane separators
+  ctx.strokeStyle = "#1e1e1e"; ctx.lineWidth = 1;
+  [GATE[0]-3, AGNT[0]-3, VAD[0]-3, EVTS[0]-3, H-PB].forEach(y => {
+    ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(W-PR, y); ctx.stroke();
+  });
+
+  // Agent speaking rects
+  let aIn = null;
+  for (const s of snaps) {
+    const x = tx(s.t);
+    if (sa(s) && aIn === null) aIn = x;
+    if (!sa(s) && aIn !== null) {
+      ctx.fillStyle = "rgba(248,113,113,.4)";
+      ctx.fillRect(aIn, AGNT[0], x-aIn, AGNT[1]); aIn = null;
+    }
+  }
+  if (aIn !== null) { ctx.fillStyle="rgba(248,113,113,.4)"; ctx.fillRect(aIn, AGNT[0], tx(snaps[snaps.length-1].t)-aIn, AGNT[1]); }
+
+  // VAD rects
+  let vIn = null;
+  for (const s of snaps) {
+    const x = tx(s.t);
+    if (sv(s) && vIn === null) vIn = x;
+    if (!sv(s) && vIn !== null) {
+      ctx.fillStyle = "rgba(105,147,255,.4)";
+      ctx.fillRect(vIn, VAD[0], x-vIn, VAD[1]); vIn = null;
+    }
+  }
+  if (vIn !== null) { ctx.fillStyle="rgba(105,147,255,.4)"; ctx.fillRect(vIn, VAD[0], tx(snaps[snaps.length-1].t)-vIn, VAD[1]); }
+
+  // Gate gain fill
+  ctx.fillStyle = "rgba(52,211,153,.07)";
+  ctx.beginPath();
+  let first = true;
+  for (const s of snaps) {
+    const x = tx(s.t), y = GATE[0] + GATE[1] * (1 - sg(s));
+    if (first) { ctx.moveTo(x, GATE[0]+GATE[1]); ctx.lineTo(x, y); first=false; }
+    else ctx.lineTo(x, y);
+  }
+  const ls = snaps[snaps.length-1];
+  ctx.lineTo(tx(ls.t), GATE[0]+GATE[1]); ctx.closePath(); ctx.fill();
+
+  // Gate gain line
+  ctx.strokeStyle = "#34d399"; ctx.lineWidth = 1.5; ctx.beginPath(); first = true;
+  for (const s of snaps) {
+    const x = tx(s.t), y = GATE[0] + GATE[1] * (1 - sg(s));
+    if (first) { ctx.moveTo(x, y); first=false; } else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Event markers
+  const userTx  = tl.filter(e => e.type === "user.transcript");
+  const agentTx = tl.filter(e => e.type === "agent.transcript");
+  const tools   = tl.filter(e => e.type === "tool.call");
+
+  ctx.font = "9px ui-monospace,monospace";
+  const EY = EVTS[0];
+
+  // User transcripts (orange) — row 0
+  for (const e of userTx) {
+    const x = tx(e.t);
+    ctx.strokeStyle = "#fb923c"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, EY); ctx.lineTo(x, EY+9); ctx.stroke();
+    if (e.text) {
+      ctx.fillStyle = "#fb923c";
+      ctx.fillText(clip(e.text, 28), Math.min(x+2, W-130), EY+9);
+    }
+  }
+
+  // Agent transcripts (green) — row 1
+  for (const e of agentTx) {
+    const x = tx(e.t);
+    ctx.strokeStyle = "rgba(52,211,153,.7)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, EY+24); ctx.lineTo(x, EY+33); ctx.stroke();
+    if (e.text) {
+      ctx.fillStyle = "rgba(52,211,153,.8)";
+      ctx.fillText(clip(e.text, 28), Math.min(x+2, W-130), EY+33);
+    }
+  }
+
+  // Tool calls (purple dots) — row 2
+  for (const e of tools) {
+    const x = tx(e.t);
+    ctx.fillStyle = "#b77db8";
+    ctx.beginPath(); ctx.arc(x, EY+52, 4, 0, Math.PI*2); ctx.fill();
+    ctx.fillText(e.name || "fn()", x+6, EY+55);
+  }
+
+  // Time axis
+  ctx.fillStyle = "#242424"; ctx.fillRect(PL, H-PB, DW, 1);
+  const tick = maxT > 60000 ? 10000 : maxT > 20000 ? 5000 : maxT > 5000 ? 2000 : 1000;
+  ctx.textAlign = "center"; ctx.fillStyle = "#444"; ctx.font = "9px ui-monospace,monospace";
+  for (let t = 0; t <= maxT; t += tick) {
+    const x = tx(t);
+    ctx.fillStyle = "#333"; ctx.fillRect(x, H-PB-3, 1, 3);
+    ctx.fillStyle = "#555"; ctx.fillText(fmtMs(t), x, H-4);
+  }
+  ctx.textAlign = "left";
+}
+
+function clip(s, n) { return s.length > n ? `"${s.slice(0,n)}…"` : `"${s}"`; }
+function fmtMs(ms) { const s=Math.floor(ms/1000), m=Math.floor(s/60); return m?`${m}:${String(s%60).padStart(2,"0")}`:`${s}s`; }
+
+// ── Transcripts ───────────────────────────────────────────────────────────────
+function renderTranscripts(run) {
+  const $w = document.getElementById("transcripts-wrap");
+  const txs = run.user_transcripts;
+  if (!txs || !txs.length) { $w.innerHTML = `<div class="no-data">No transcript data</div>`; return; }
+  $w.innerHTML = txs.map(t => {
+    const werCls = t.wer == null ? "" : t.wer < 0.1 ? "wer-good" : t.wer < 0.3 ? "wer-ok" : "wer-bad";
+    const werLabel = t.wer == null ? "" : `<div class="tx-wer ${werCls}">WER ${(t.wer*100).toFixed(1)}%</div>`;
+    return `<div class="tx-pair">
+      <div class="tx-box"><div class="tx-label">Reference (script line)</div><div class="tx-text">${esc(t.ref)}</div></div>
+      <div class="tx-box">
+        <div class="tx-label">Transcribed</div>
+        <div class="tx-text">${esc(t.hyp)}</div>
+        ${werLabel}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── Tool calls ────────────────────────────────────────────────────────────────
+function renderToolCalls(run) {
+  const $w = document.getElementById("tool-calls-wrap");
+  const calls = run.tool_calls;
+  if (!calls || !calls.length) { $w.innerHTML = `<div class="no-data">No tool calls recorded</div>`; return; }
+  $w.innerHTML = calls.map(tc => {
+    const mColor = tc.match === true ? "var(--green)" : tc.match === false ? "var(--red)" : "var(--text-ter)";
+    const mLabel = tc.match === true ? "✓ match" : tc.match === false ? "✗ mismatch" : "?";
+    const argHtml = Object.entries(tc.received_args || {}).map(([k, v]) => {
+      const exp = tc.expected_args?.[k];
+      const matched = exp ? exp.some(e => String(e).toLowerCase() === String(v).toLowerCase()) : null;
+      const cls = matched === true ? "match" : matched === false ? "mismatch" : "neutral";
+      return `<span class="tool-arg ${cls}">${esc(k)}: ${esc(String(v))}</span>`;
+    }).join("");
+    return `<div class="tool-call">
+      <div class="tool-name">${esc(tc.name)} <span style="font-size:11px;color:${mColor}">${mLabel}</span></div>
+      <div class="tool-args">${argHtml || `<span style="color:var(--text-ter);font-size:11px">no args</span>`}</div>
+    </div>`;
+  }).join("");
+}
+
+// ── Event log ─────────────────────────────────────────────────────────────────
+function renderEventLog(run) {
+  const $el = document.getElementById("event-log");
+  const tl = run.timeline;
+  if (!tl || !tl.length) { $el.innerHTML = `<div class="no-data">No timeline data</div>`; return; }
+  const events = tl.filter(e => e.type !== "snapshot" && e.type !== "s");
+  if (!events.length) { $el.innerHTML = `<div class="no-data">Only periodic snapshots present — discrete events will appear in new recordings</div>`; return; }
+  $el.innerHTML = events.map(e => {
+    const cls = evtColor(e.type);
+    const { t, type, ...rest } = e;
+    const data = Object.keys(rest).length ? JSON.stringify(rest).slice(0, 120) : "";
+    return `<div class="el"><span class="el-t">${fmtMs(t)}</span><span class="el-type ${cls}">${esc(type)}</span><span class="el-data">${esc(data)}</span></div>`;
+  }).join("");
+}
+
+function evtColor(type) {
+  if (type === "agent.transcript") return "ec-green";
+  if (type === "user.transcript") return "ec-orange";
+  if (type.startsWith("agent.speaking")) return "ec-red";
+  if (type.startsWith("gate")) return "ec-purple";
+  if (type.startsWith("tool")) return "ec-blue";
+  return "ec-gray";
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// Redraw on resize
+window.addEventListener("resize", () => {
+  if (selectedIdx === null) return;
+  const run = allRuns[selectedIdx];
+  if (run.timeline && run.timeline.length) renderTimeline(run);
+});
+
+// Auto-load: prefer window.opener handoff (avoids localStorage size/cache issues);
+// fall back to localStorage. Either way, opening this page from the parent app
+// should immediately show the current session.
+function pullFromOpener() {
+  try {
+    if (window.opener && Array.isArray(window.opener.__replayData__)) {
+      const data = window.opener.__replayData__;
+      window.opener.__replayData__ = null;
+      return data;
+    }
+  } catch (e) { console.warn("opener access failed", e); }
+  return null;
+}
+function pullFromLocalStorage() {
+  const raw = localStorage.getItem("replay_autoload");
+  if (!raw) return null;
+  localStorage.removeItem("replay_autoload");
+  try { return JSON.parse(raw); } catch (e) { console.error("autoload parse failed", e); return null; }
+}
+(function tryAutoLoad() {
+  const data = pullFromOpener() || pullFromLocalStorage();
+  if (!data) return;
+  try {
+    allRuns = (Array.isArray(data) ? data : [data]).map(normalizeRun);
+    if (!allRuns.length) return;
+    $drop.style.display = "none";
+    $app.style.display = "block";
+    renderRunList();
+    selectRun(0);
+  } catch(e) { console.error("replay autoload failed", e); }
+})();
+</script>
+</body>
+</html>

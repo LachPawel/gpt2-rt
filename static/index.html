@@ -77,6 +77,10 @@
   .switch.on{background:var(--color-accent)}
   .switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform 0.2s}
   .switch.on::after{transform:translateX(22px)}
+  .mode-toggle{display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--color-border);background:var(--color-panel)}
+  .mode-btn{padding:6px 14px;border:none;background:transparent;color:var(--color-text-ter);font-family:var(--font-display);font-size:11px;text-transform:uppercase;letter-spacing:0.6px;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+  .mode-btn.active{background:var(--color-accent);color:white}
+  .mode-btn:not(.active):hover{background:rgba(105,147,255,0.1);color:var(--color-text-sec)}
   input[type=range]{accent-color:var(--color-accent);width:140px}
   .level-val{font-family:var(--font-mono);font-size:12px;color:var(--color-text-sec);min-width:32px;text-align:right}
   .rec-btn{
@@ -101,6 +105,7 @@
   .rec-row a{color:var(--color-accent);text-decoration:none;padding:2px 8px;border:1px solid var(--color-border);border-radius:6px}
   .rec-row a:hover{background:rgba(105,147,255,0.1)}
   .rec-row a.enh{color:var(--purple);border-color:rgba(183,125,184,0.4)}
+  .rec-row a.logdl{color:var(--color-text-ter);border-color:rgba(255,255,255,0.12)}
 
   .panels-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;margin-bottom:16px}
   .panel{background:var(--color-panel);border:1px solid var(--color-border);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
@@ -133,12 +138,145 @@
   .log .type{font-weight:600;flex-shrink:0}
   .log .preview{color:var(--color-text-sec);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.75}
   .log .t-green{color:var(--green)} .log .t-blue{color:var(--color-accent)}
-  .log .t-orange{color:var(--orange)} .log .t-gray{color:var(--color-text-ter)} .log .t-red{color:var(--red)}
+  .log .t-orange{color:var(--orange)} .log .t-gray{color:var(--color-text-ter)} .log .t-red{color:var(--red)} .log .t-purple{color:var(--purple)} .log .t-purple{color:var(--purple)}
+
+  /* ── Sticky mobile top bar ─────────────────────────────── */
+  .sticky-top{position:sticky;top:0;z-index:100;background:var(--color-bg);padding:10px 0 8px;width:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;border-bottom:1px solid var(--color-border)}
+
+  /* ── Model loading progress bar ────────────────────────── */
+  .model-progress-wrap{width:100%;max-width:460px;margin-bottom:8px;display:none}
+  .model-progress-wrap.visible{display:block}
+  .model-progress-label{font-size:11px;color:var(--color-text-ter);margin-bottom:4px;text-align:center}
+  .model-progress-bar{width:100%;height:4px;background:var(--color-border);border-radius:2px;overflow:hidden}
+  .model-progress-fill{height:100%;background:var(--color-accent);width:0%;transition:width 0.3s ease;border-radius:2px}
+
+  /* ── Network quality indicator ──────────────────────────── */
+  .net-quality{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--color-text-ter);font-family:var(--font-mono)}
+  .net-quality .nq-dot{width:6px;height:6px;border-radius:50%;background:var(--color-text-ter)}
+  .net-quality.good .nq-dot{background:var(--green)}
+  .net-quality.fair .nq-dot{background:var(--orange)}
+  .net-quality.poor .nq-dot{background:var(--red)}
+
+  /* ── Debug show/hide toggle (mobile) ────────────────────── */
+  .debug-toggle{display:none;padding:6px 14px;background:transparent;border:1px solid var(--color-border);border-radius:999px;color:var(--color-text-ter);font-size:11px;cursor:pointer;font-family:var(--font-display);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px}
+  .debug-section{width:100%}
+
+  /* ── Echo test banner ───────────────────────────────────── */
+  .echo-banner{display:none;width:100%;padding:10px 16px;background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.4);border-radius:10px;color:var(--red);font-size:12px;text-align:center;margin-bottom:12px;font-weight:600}
+  .echo-banner.visible{display:block}
+
+  /* ── Echo event counters ────────────────────────────────── */
+  .echo-counters{display:none;gap:10px;width:100%;margin-bottom:12px}
+  .echo-counters.visible{display:flex}
+  .echo-badge{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;font-family:var(--font-mono);background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.4);color:var(--red);flex:1;text-align:center}
+  .echo-badge span{display:block;font-size:10px;font-weight:400;color:var(--color-text-ter);margin-bottom:2px}
+
+  /* ── Benchmark panel ────────────────────────────────────── */
+  .bench-section{width:100%;margin-top:32px;border-top:1px solid var(--color-border);padding-top:28px}
+  .bench-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+  .bench-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--color-text-ter)}
+  .bench-index{font-family:var(--font-mono);font-size:14px;color:var(--color-text-ter)}
+  .bench-run-status{
+    width:100%;padding:10px 16px;background:var(--color-panel);border:1px solid var(--color-border);
+    border-radius:10px;font-family:var(--font-mono);font-size:12px;color:var(--color-text-sec);
+    margin-bottom:14px;display:flex;gap:18px;flex-wrap:wrap;align-items:center;
+  }
+  .bench-run-status .rs-item{display:flex;flex-direction:column;gap:2px}
+  .bench-run-status .rs-label{font-size:9px;text-transform:uppercase;color:var(--color-text-ter);letter-spacing:0.6px}
+  .bench-run-status .rs-val{font-size:13px;color:var(--color-text-pri)}
+  .bench-run-status .rs-val.vf-on{color:var(--green)}
+  .bench-run-status .rs-val.vf-off{color:var(--orange)}
+
+  .bench-controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+  .bench-select{
+    background:var(--color-panel);border:1px solid var(--color-border);border-radius:8px;
+    color:var(--color-text-pri);font-family:var(--font-display);font-size:13px;padding:8px 12px;
+    cursor:pointer;min-width:220px;
+  }
+  .bench-btn{
+    display:inline-flex;align-items:center;gap:6px;padding:8px 16px;
+    background:var(--color-accent);border:none;border-radius:8px;
+    color:white;font-family:var(--font-display);font-size:12px;font-weight:600;
+    text-transform:uppercase;letter-spacing:0.6px;cursor:pointer;transition:opacity 0.2s;
+  }
+  .bench-btn:hover{opacity:0.85}
+  .bench-btn.secondary{background:transparent;border:1px solid var(--color-border);color:var(--color-text-sec)}
+  .bench-btn.danger{background:rgba(248,113,113,0.15);border:1px solid rgba(248,113,113,0.4);color:var(--red)}
+  .bench-btn:disabled{opacity:0.35;cursor:not-allowed}
+
+  .script-panel{
+    width:100%;background:var(--color-panel);border:1px solid var(--color-border);border-radius:12px;
+    padding:18px 20px;margin-bottom:14px;
+  }
+  .script-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.9px;color:var(--color-text-ter);margin-bottom:10px}
+  .script-line{font-size:22px;line-height:1.35;color:var(--color-text-pri);font-weight:300;min-height:40px;margin-bottom:14px}
+  .script-line.wait-line{color:var(--orange)}
+  .script-countdown{font-size:36px;font-weight:700;font-family:var(--font-mono);color:var(--orange);margin-bottom:14px;display:none}
+  .script-progress{font-size:11px;color:var(--color-text-ter);margin-bottom:12px}
+  .script-next-btn{
+    width:100%;padding:16px;background:var(--color-accent);border:none;border-radius:10px;
+    color:white;font-family:var(--font-display);font-size:14px;font-weight:600;
+    text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;transition:opacity 0.2s;
+    min-height:56px;
+  }
+  .script-next-btn:hover{opacity:0.85}
+  .script-next-btn:disabled{opacity:0.35;cursor:not-allowed}
+  .user-silent-badge{
+    display:none;padding:6px 14px;border-radius:999px;background:rgba(251,146,60,0.12);
+    border:1px solid rgba(251,146,60,0.4);color:var(--orange);font-size:11px;font-weight:600;
+    text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;
+  }
+  .user-silent-badge.visible{display:inline-flex;align-items:center;gap:6px}
+
+  /* ── Metrics live display ───────────────────────────────── */
+  .metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%;margin-bottom:14px}
+  .metric-card{background:var(--color-panel);border:1px solid var(--color-border);border-radius:10px;padding:10px 12px}
+  .metric-card .mc-label{font-size:9px;text-transform:uppercase;letter-spacing:0.7px;color:var(--color-text-ter);margin-bottom:4px}
+  .metric-card .mc-val{font-size:20px;font-weight:700;font-family:var(--font-mono);color:var(--color-text-pri)}
+  .metric-card .mc-sub{font-size:10px;color:var(--color-text-ter);margin-top:2px}
+  .metric-card.pass .mc-val{color:var(--green)}
+  .metric-card.fail .mc-val{color:var(--red)}
+
+  /* ── Condition note ─────────────────────────────────────── */
+  .condition-row{display:flex;gap:10px;width:100%;margin-bottom:16px;flex-wrap:wrap}
+  .condition-input{
+    flex:1;min-width:200px;background:var(--color-panel);border:1px solid var(--color-border);
+    border-radius:8px;padding:8px 12px;color:var(--color-text-pri);font-family:var(--font-display);
+    font-size:13px;
+  }
+  .condition-input::placeholder{color:var(--color-text-ter)}
+
+  /* ── Results table ──────────────────────────────────────── */
+  .results-section{width:100%;margin-top:16px}
+  .results-toggle-btn{
+    width:100%;padding:10px;background:transparent;border:1px solid var(--color-border);
+    border-radius:10px;color:var(--color-text-ter);font-family:var(--font-display);font-size:11px;
+    text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;margin-bottom:10px;
+  }
+  .results-body{display:none}
+  .results-body.open{display:block}
+  .results-table-wrap{overflow-x:auto;width:100%;border-radius:10px;border:1px solid var(--color-border)}
+  .results-table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:11px}
+  .results-table th{background:var(--color-panel);color:var(--color-text-ter);padding:8px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--color-border)}
+  .results-table td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--color-text-sec);white-space:nowrap}
+  .results-table tr:last-child td{border-bottom:none}
+  .results-table .better{color:var(--green)}
+  .results-table .worse{color:var(--red)}
+  .results-table .neutral{color:var(--color-text-sec)}
+  .export-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 
   @media (max-width:899px){
     .container{padding:24px 14px 36px}
     h1{font-size:40px;letter-spacing:-1px}
     .panels-row,.vad-row{grid-template-columns:1fr;display:flex;flex-direction:column}
+    .debug-toggle{display:block}
+    .metrics-grid{grid-template-columns:repeat(2,1fr)}
+    .script-line{font-size:20px}
+  }
+  @media (max-width:599px){
+    .metrics-grid{grid-template-columns:1fr 1fr}
+    .bench-controls{flex-direction:column;align-items:stretch}
+    .bench-select{min-width:unset;width:100%}
   }
 </style>
 </head>
@@ -148,7 +286,14 @@
     <div class="eyebrow"><span>OpenAI Realtime · Quail VF 2.1</span></div>
     <h1>Voice Agent</h1>
     <div class="sub">Click the mic, then toggle ai-coustics on/off to A/B the difference.</div>
+
+    <div class="model-progress-wrap" id="model-progress-wrap">
+      <div class="model-progress-label" id="model-progress-label">Loading model… 0%</div>
+      <div class="model-progress-bar"><div class="model-progress-fill" id="model-progress-fill"></div></div>
+    </div>
+
     <span id="status" class="badge"><span class="dot"></span>Disconnected</span>
+    <span id="net-quality" class="net-quality" style="margin-top:6px;display:none"><span class="nq-dot"></span><span id="net-quality-label">—</span></span>
     <div class="mic-wrap">
       <button id="mic" class="mic-btn" aria-label="Toggle mic">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -161,8 +306,12 @@
 
     <div class="controls">
       <div class="control">
-        <span class="control-label">ai-coustics</span>
-        <div id="aic-switch" class="switch on" role="switch" aria-checked="true"></div>
+        <span class="control-label">Audio mode</span>
+        <div id="mode-toggle" class="mode-toggle">
+          <button data-mode="raw" class="mode-btn" type="button">Raw</button>
+          <button data-mode="enhance" class="mode-btn" type="button">VF</button>
+          <button data-mode="gate" class="mode-btn active" type="button">VF+Gate</button>
+        </div>
       </div>
       <div class="control">
         <span class="control-label">Enhancement</span>
@@ -180,11 +329,26 @@
         <span id="vad-hold-val" class="level-val">0.10</span>
       </div>
       <div class="control">
+        <span class="control-label">Gate hold (ms)</span>
+        <input id="gate-hold" type="range" min="0" max="1000" step="50" value="300" />
+        <span id="gate-hold-val" class="level-val">300</span>
+      </div>
+      <div class="control">
         <button id="rec" class="rec-btn" type="button"><span class="rec-dot"></span><span id="rec-label">Record</span></button>
       </div>
     </div>
     <div id="recordings" class="recordings"></div>
 
+    <div id="echo-banner" class="echo-banner">⚠ Browser echo cancellation OFF — QuailVF is handling echo suppression</div>
+    <div id="echo-counters" class="echo-counters">
+      <div class="echo-badge"><span>Self-interruptions</span><span id="ec-self">0</span></div>
+      <div class="echo-badge"><span>Ghost transcripts</span><span id="ec-ghost">0</span></div>
+      <div class="echo-badge"><span>Agent completion</span><span id="ec-completion">—</span></div>
+    </div>
+    <div id="user-silent-badge" class="user-silent-badge">⬤ User is silent — any detection is echo</div>
+
+    <button class="debug-toggle" id="debug-toggle" type="button">▸ Show debug panels</button>
+    <div class="debug-section" id="debug-section">
     <div class="panels-row">
       <div class="panel">
         <div class="panel-title">Raw mic (input) <span class="tag">pre-AIC</span></div>
@@ -198,10 +362,11 @@
 
     <div class="vad-row">
       <div class="panel">
-        <div class="panel-title">Voice activity <span class="tag purple">Quail VF VAD</span></div>
+        <div class="panel-title">Voice activity <span class="tag purple">Quail VF VAD</span> <span id="gate-status" class="tag" style="margin-left:auto">gate —</span></div>
         <canvas id="vad" class="vad" width="1280" height="36"></canvas>
       </div>
     </div>
+    </div><!-- /debug-section -->
 
     <div class="panels-row">
       <div class="panel">
@@ -221,6 +386,103 @@
       </div>
       <div id="log" class="log"></div>
     </div>
+
+    <!-- ═══════════════════════════════════════════════════════ BENCHMARK ═══ -->
+    <div class="bench-section">
+      <div class="bench-header">
+        <span class="bench-title">Benchmark</span>
+        <span class="bench-index">02 / task-runner</span>
+      </div>
+
+      <!-- Run status bar -->
+      <div class="bench-run-status" id="bench-run-status">
+        <div class="rs-item"><span class="rs-label">Run</span><span class="rs-val" id="rs-run">—</span></div>
+        <div class="rs-item"><span class="rs-label">Task</span><span class="rs-val" id="rs-task">—</span></div>
+        <div class="rs-item"><span class="rs-label">Mode</span><span class="rs-val" id="rs-vf">—</span></div>
+        <div class="rs-item"><span class="rs-label">Category</span><span class="rs-val" id="rs-cat">—</span></div>
+        <div class="rs-item" style="margin-left:auto"><span id="net-quality" class="net-quality"><span class="nq-dot"></span><span id="net-quality-label">—</span></span></div>
+      </div>
+
+      <!-- Task selector + run controls -->
+      <div class="bench-controls">
+        <select id="bench-task-select" class="bench-select"><option value="">Loading tasks…</option></select>
+        <button id="bench-start-btn" class="bench-btn" type="button">▶ Start Task</button>
+        <button id="bench-run-all-btn" class="bench-btn secondary" type="button">⟳ Run All</button>
+        <button id="bench-stop-btn" class="bench-btn danger" type="button" disabled>■ Stop</button>
+      </div>
+
+      <!-- Condition note row -->
+      <div class="condition-row">
+        <input id="condition-note" class="condition-input" type="text" placeholder="Condition note (e.g. stairway-speakerphone)…" />
+        <button id="echo-test-toggle" class="bench-btn secondary" type="button">Echo Test: OFF</button>
+      </div>
+
+      <!-- Script panel -->
+      <div class="script-panel" id="script-panel" style="display:none">
+        <div class="script-label">Read aloud:</div>
+        <div id="script-line" class="script-line">—</div>
+        <div id="script-countdown" class="script-countdown"></div>
+        <div id="script-progress" class="script-progress">Line 0 / 0</div>
+        <button id="script-next-btn" class="script-next-btn" type="button" disabled>Next line →</button>
+      </div>
+
+      <!-- Live metrics -->
+      <div class="metrics-grid">
+        <div class="metric-card" id="mc-task">
+          <div class="mc-label">Task result</div>
+          <div class="mc-val" id="mc-task-val">—</div>
+          <div class="mc-sub" id="mc-task-sub">awaiting run</div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-label">Avg WER</div>
+          <div class="mc-val" id="mc-wer">—</div>
+          <div class="mc-sub" id="mc-wer-sub">word error rate</div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-label">Interruptions</div>
+          <div class="mc-val" id="mc-intr">0</div>
+          <div class="mc-sub" id="mc-intr-sub">false / total responses</div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-label">Avg latency</div>
+          <div class="mc-val" id="mc-lat">—</div>
+          <div class="mc-sub">ms (speech_stop → first audio)</div>
+        </div>
+      </div>
+
+      <!-- Results section -->
+      <div class="results-section">
+        <button class="results-toggle-btn" id="results-toggle-btn" type="button">▸ Results (0 runs)</button>
+        <div class="results-body" id="results-body">
+          <div class="results-table-wrap">
+            <table class="results-table" id="results-table">
+              <thead>
+                <tr>
+                  <th>Task</th>
+                  <th>Mode</th>
+                  <th>Pass</th>
+                  <th>WER</th>
+                  <th>Interruptions</th>
+                  <th>Latency (ms)</th>
+                  <th>Self-intr.</th>
+                  <th>Ghost tx</th>
+                  <th>Completion%</th>
+                  <th>Condition</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="results-tbody"></tbody>
+            </table>
+          </div>
+          <div class="export-row">
+            <button id="export-json-btn" class="bench-btn secondary" type="button">↓ Export JSON</button>
+            <button id="export-csv-btn" class="bench-btn secondary" type="button">↓ Export CSV</button>
+            <button id="open-replay-btn" class="bench-btn secondary" type="button">⧗ Open Replay</button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /bench-section -->
+
   </div>
   <audio id="remote" autoplay></audio>
 <script type="module">
@@ -228,11 +490,14 @@ import init, { Model, Processor, ProcessorParameter, VadParameter } from "https:
 
 const MODEL_URL = "https://artifacts.ai-coustics.io/models/quail-vf-2-1-l-16khz/v3/quail_vf_2_1_l_16khz_8xope536_v11.aicmodel";
 
+// ─── DOM refs ────────────────────────────────────────────────────────────────
 const $status = document.getElementById("status");
 const $mic = document.getElementById("mic");
 const $log = document.getElementById("log");
 const $audio = document.getElementById("remote");
-const $switch = document.getElementById("aic-switch");
+const $modeToggle = document.getElementById("mode-toggle");
+const $gateHold = document.getElementById("gate-hold");
+const $gateHoldVal = document.getElementById("gate-hold-val");
 const $level = document.getElementById("level");
 const $levelVal = document.getElementById("level-val");
 const $vadSens = document.getElementById("vad-sens");
@@ -244,33 +509,144 @@ const $specEnh = document.getElementById("spec-enh");
 const $vad = document.getElementById("vad");
 const $userTx = document.getElementById("user-tx");
 const $agentTx = document.getElementById("agent-tx");
+const $modelProgressWrap = document.getElementById("model-progress-wrap");
+const $modelProgressFill = document.getElementById("model-progress-fill");
+const $modelProgressLabel = document.getElementById("model-progress-label");
+const $netQuality = document.getElementById("net-quality");
+const $netQualityLabel = document.getElementById("net-quality-label");
+const $debugToggle = document.getElementById("debug-toggle");
+const $debugSection = document.getElementById("debug-section");
+const $echoBanner = document.getElementById("echo-banner");
+const $echoCounters = document.getElementById("echo-counters");
+const $ecSelf = document.getElementById("ec-self");
+const $ecGhost = document.getElementById("ec-ghost");
+const $ecCompletion = document.getElementById("ec-completion");
+const $userSilentBadge = document.getElementById("user-silent-badge");
 
+// ─── State ────────────────────────────────────────────────────────────────────
 let pc = null, dc = null, micStream = null, connected = false;
 let audioCtx = null, aicProc = null, aicModel = null, procCtx = null, vadCtx = null;
 let analyserRaw = null, analyserEnh = null;
 let rafId = null;
 let sender = null, rawTrack = null, enhancedTrack = null;
 let recRaw = null, recEnh = null, chunksRaw = [], chunksEnh = [], recording = false, recStart = 0;
+let benchRecordingTaskId = null;
+let allRecordings = [];
 const vadHistory = [];
 const VAD_WINDOW_MS = 20000;
 
 let userFinals = [], userInterim = "";
 let agentFinals = [], agentInterim = "";
 
+// Echo / agent state
+let agentSpeaking = false;
+let userIntendsSpeech = false;
+let selfInterruptions = 0;
+let echoTranscripts = [];
+let agentResponsesTotal = 0;
+let agentResponsesCompleted = 0;
+let echoTestMode = false;
+
+// Audio mode: 'raw' | 'enhance' | 'gate'
+let audioMode = 'gate';
+let vadGainCurrent = 0;
+const VAD_FADE_RATE = 0.05;
+let lastSpeechTime = 0;
+
+// Latency tracking
+let speechStopTime = null;
+let latencyMeasurements = [];
+let agentAudioStartedThisTurn = false;
+
+// Wake lock
+let wakeLock = null;
+
+// Network quality poll
+let netStatInterval = null;
+
+// Timeline — collected during each recording session
+let runTimeline = [];
+let runStartMs = 0;
+let timelineInterval = null;
+let gateWasOpen = false;
+
+// ─── Tools ────────────────────────────────────────────────────────────────────
+const TOOLS = [
+  {
+    type: "function", name: "check_calendar",
+    description: "Check whether a calendar slot is available on a given date and time.",
+    parameters: { type: "object", properties: {
+      date: { type: "string", description: "Date in natural language or ISO format" },
+      time: { type: "string", description: "Time of day, e.g. '3pm' or '15:00'" }
+    }, required: ["date", "time"] }
+  },
+  {
+    type: "function", name: "book_meeting",
+    description: "Book a meeting at a specific date, time, and number of attendees.",
+    parameters: { type: "object", properties: {
+      date: { type: "string" },
+      time: { type: "string" },
+      attendees: { type: "integer", description: "Number of attendees" },
+      name: { type: "string", description: "Name for the booking" }
+    }, required: ["date", "time"] }
+  },
+  {
+    type: "function", name: "cancel_meeting",
+    description: "Cancel an existing meeting by date and time.",
+    parameters: { type: "object", properties: {
+      date: { type: "string" },
+      time: { type: "string" }
+    }, required: ["date", "time"] }
+  },
+  {
+    type: "function", name: "update_contact_name",
+    description: "Update the contact name for a booking.",
+    parameters: { type: "object", properties: {
+      old_name: { type: "string" },
+      new_name: { type: "string" }
+    }, required: ["old_name", "new_name"] }
+  }
+];
+
+// ─── Tool mock responses ──────────────────────────────────────────────────────
+function mockToolResponse(name, args) {
+  switch (name) {
+    case "check_calendar":
+      return { available: true, note: `You're free on ${args.date} at ${args.time}!` };
+    case "book_meeting":
+      return { success: true, confirmation: `Meeting booked on ${args.date} at ${args.time}${args.attendees ? " for " + args.attendees + " people" : ""}${args.name ? " ("+args.name+")" : ""}.` };
+    case "cancel_meeting":
+      return { success: true, message: `Meeting on ${args.date} at ${args.time} has been cancelled.` };
+    case "update_contact_name":
+      return { success: true, message: `Contact name updated from "${args.old_name}" to "${args.new_name}".` };
+    default:
+      return { success: true };
+  }
+}
+
+// ─── Utility ─────────────────────────────────────────────────────────────────
 function setStatus(state, label) {
   $status.className = "badge " + state;
   $status.innerHTML = `<span class="dot"></span>${label}`;
 }
 function colorFor(type) {
-  if (type === "session.created" || type === "session.updated") return "t-green";
-  if (type.includes("audio_transcript.delta")) return "t-blue";
-  if (type.startsWith("response.function_call") || type === "conversation.item.create" || type === "response.create") return "t-orange";
-  if (type === "error") return "t-red";
+  if (type === "session.created" || type === "session.updated" || type === "agent.speaking.stop") return "t-green";
+  if (type.includes("audio_transcript") || type === "agent.speaking.start") return "t-blue";
+  if (type.startsWith("response.function_call") || type === "tool.call" || type === "conversation.item.create" || type === "response.create") return "t-orange";
+  if (type === "error" || type.startsWith("echo.")) return "t-red";
+  if (type.startsWith("gate.")) return "t-purple";
   return "t-gray";
 }
 function log(type, obj) {
   const ts = new Date().toTimeString().slice(0, 8);
-  const preview = obj ? JSON.stringify(obj).slice(0, 140) : "";
+  // Show human-readable text for transcript events; raw JSON for everything else
+  let preview = "";
+  if (obj) {
+    if (obj.transcript) preview = `"${obj.transcript}"`;
+    else if (obj.text) preview = `"${obj.text}"`;
+    else if (obj.message) preview = obj.message;
+    else preview = JSON.stringify(obj).slice(0, 140);
+  }
   const entry = document.createElement("div");
   entry.className = "entry";
   entry.innerHTML = `<span class="ts">${ts}</span><span class="type ${colorFor(type)}">${type}</span><span class="preview"></span>`;
@@ -278,35 +654,53 @@ function log(type, obj) {
   $log.appendChild(entry);
   $log.scrollTop = $log.scrollHeight;
 }
+// Push a timestamped event into the current recording's timeline
+function tEvent(type, data) {
+  if (!recording) return;
+  runTimeline.push(data ? { t: Date.now() - runStartMs, type, ...data } : { t: Date.now() - runStartMs, type });
+}
 
-const TOOLS = [{
-  type: "function",
-  name: "check_calendar",
-  description: "Check whether a calendar slot is available on a given date and time.",
-  parameters: {
-    type: "object",
-    properties: {
-      date: { type: "string", description: "Date in natural language or ISO format" },
-      time: { type: "string", description: "Time of day, e.g. '3pm' or '15:00'" }
-    },
-    required: ["date", "time"]
+// ─── WER ─────────────────────────────────────────────────────────────────────
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, (_, i) => Array.from({ length: n + 1 }, (_, j) => i === 0 ? j : j === 0 ? i : 0));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j-1], dp[i-1][j], dp[i][j-1]);
+  return dp[m][n];
+}
+function computeWer(ref, hyp) {
+  const rw = ref.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  const hw = hyp.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  if (!rw.length) return 0;
+  return levenshtein(rw, hw) / rw.length;
+}
+
+// ─── Fuzzy arg match ─────────────────────────────────────────────────────────
+function argMatches(received, expectedList) {
+  const r = String(received).toLowerCase().trim();
+  return expectedList.some(e => String(e).toLowerCase().trim() === r);
+}
+function scoreToolCall(received, expectedDef) {
+  if (received.name !== expectedDef.name) return false;
+  const args = received.args || {};
+  const exp = expectedDef.expected_args || {};
+  for (const [key, vals] of Object.entries(exp)) {
+    if (!(key in args)) return false;
+    if (!argMatches(args[key], vals)) return false;
   }
-}];
+  return true;
+}
 
+// ─── Transcripts ─────────────────────────────────────────────────────────────
 function renderTranscripts() {
   const render = ($el, finals, interim) => {
     $el.innerHTML = "";
     for (const f of finals) {
-      const d = document.createElement("div");
-      d.className = "line final";
-      d.textContent = f;
-      $el.appendChild(d);
+      const d = document.createElement("div"); d.className = "line final"; d.textContent = f; $el.appendChild(d);
     }
     if (interim) {
-      const d = document.createElement("div");
-      d.className = "line interim";
-      d.textContent = interim;
-      $el.appendChild(d);
+      const d = document.createElement("div"); d.className = "line interim"; d.textContent = interim; $el.appendChild(d);
     }
     $el.scrollTop = $el.scrollHeight;
   };
@@ -314,35 +708,106 @@ function renderTranscripts() {
   render($agentTx, agentFinals, agentInterim);
 }
 
+// ─── Event handler ────────────────────────────────────────────────────────────
 function handleEvent(msg) {
   log(msg.type, msg);
 
-  if (msg.type === "response.function_call_arguments.done" && msg.name === "check_calendar") {
+  // Tool calls
+  if (msg.type === "response.function_call_arguments.done") {
     const args = JSON.parse(msg.arguments || "{}");
-    const result = { available: true, note: `You're free on ${args.date} at ${args.time}!` };
+    const result = mockToolResponse(msg.name, args);
+    benchRecordToolCall(msg.name, args);
+    tEvent('tool.call', { name: msg.name });
     dc.send(JSON.stringify({ type: "conversation.item.create", item: { type: "function_call_output", call_id: msg.call_id, output: JSON.stringify(result) } }));
     dc.send(JSON.stringify({ type: "response.create" }));
     return;
   }
 
+  // Agent speaking state
+  if (msg.type === "response.audio.delta" || msg.type === "response.output_audio.delta") {
+    if (!agentSpeaking) {
+      agentSpeaking = true;
+      vadGainCurrent = 0; // snap gate shut immediately — don't fade, cut at once
+      agentResponsesTotal++;
+      agentAudioStartedThisTurn = true;
+      log("agent.speaking.start", { n: agentResponsesTotal });
+      tEvent('agent.speaking.start', {});
+      // Latency: speech_stop → first audio delta
+      if (speechStopTime !== null) {
+        const lat = performance.now() - speechStopTime;
+        latencyMeasurements.push(lat);
+        speechStopTime = null;
+        updateMetrics();
+      }
+    }
+  }
+  if (msg.type === "response.done" || msg.type === "response.audio.done" || msg.type === "response.output_audio.done") {
+    if (agentSpeaking) {
+      agentResponsesCompleted++;
+      agentSpeaking = false;
+      agentAudioStartedThisTurn = false;
+      log("agent.speaking.stop", { completed: agentResponsesCompleted, total: agentResponsesTotal });
+      tEvent('agent.speaking.stop', {});
+      updateEchoCounters();
+    }
+  }
+
+  // Speech buffer
+  if (msg.type === "input_audio_buffer.speech_started") {
+    if (agentSpeaking && !userIntendsSpeech) {
+      selfInterruptions++;
+      log("echo.self-interruption", { agentWasSpeaking: true, userSilent: true });
+      updateEchoCounters();
+    }
+  }
+  if (msg.type === "input_audio_buffer.speech_stopped") {
+    speechStopTime = performance.now();
+    userIntendsSpeech = false;
+    document.getElementById("user-silent-badge").classList.remove("visible");
+  }
+  if (msg.type === "input_audio_buffer.committed") {
+    // Nothing extra needed
+  }
+
+  // Transcriptions
   if (msg.type === "conversation.item.input_audio_transcription.delta") {
     userInterim = (userInterim || "") + (msg.delta || "");
     renderTranscripts();
   } else if (msg.type === "conversation.item.input_audio_transcription.completed") {
-    if (msg.transcript) userFinals.push(msg.transcript);
+    if (!userIntendsSpeech && echoTestMode) {
+      echoTranscripts.push(msg.transcript || "");
+      log("echo.ghost-transcript", { transcript: msg.transcript });
+      updateEchoCounters();
+    }
+    if (msg.transcript) {
+      userFinals.push(msg.transcript);
+      benchRecordTranscript(msg.transcript);
+      tEvent('user.transcript', { text: msg.transcript });
+      log("user.transcript", { transcript: msg.transcript });
+    }
     userInterim = "";
     renderTranscripts();
   } else if (msg.type === "response.audio_transcript.delta" || msg.type === "response.output_audio_transcript.delta") {
     agentInterim = (agentInterim || "") + (msg.delta || "");
     renderTranscripts();
   } else if (msg.type === "response.audio_transcript.done" || msg.type === "response.output_audio_transcript.done") {
-    if (msg.transcript) agentFinals.push(msg.transcript);
+    if (msg.transcript) {
+      agentFinals.push(msg.transcript);
+      tEvent('agent.transcript', { text: msg.transcript });
+      log("agent.transcript", { transcript: msg.transcript });
+    }
     agentInterim = "";
     renderTranscripts();
   }
 }
 
-// ----- spectrogram drawing -----
+function updateEchoCounters() {
+  $ecSelf.textContent = selfInterruptions;
+  $ecGhost.textContent = echoTranscripts.length;
+  $ecCompletion.textContent = agentResponsesTotal ? Math.round(agentResponsesCompleted / agentResponsesTotal * 100) + "%" : "—";
+}
+
+// ─── Spectrogram ─────────────────────────────────────────────────────────────
 const MAGMA = [[1,1,3],[16,7,36],[49,12,82],[86,16,109],[124,17,123],[157,28,124],[191,40,118],[223,55,103],[243,82,89],[251,118,79],[253,156,80],[253,193,93],[251,229,128],[251,252,191]];
 function magma(t) {
   const x = Math.max(0, Math.min(1, t)) * (MAGMA.length - 1);
@@ -350,11 +815,9 @@ function magma(t) {
   const a = MAGMA[i], b = MAGMA[Math.min(MAGMA.length - 1, i + 1)];
   return [Math.round(a[0]+(b[0]-a[0])*f), Math.round(a[1]+(b[1]-a[1])*f), Math.round(a[2]+(b[2]-a[2])*f)];
 }
-
 function makeSpectrogramRenderer(canvas, getAnalyser) {
   const ctx = canvas.getContext("2d", { willReadFrequently: false });
-  ctx.fillStyle = "#0a0a0d";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#0a0a0d"; ctx.fillRect(0, 0, canvas.width, canvas.height);
   let buf = null;
   return () => {
     const analyser = getAnalyser();
@@ -374,54 +837,67 @@ function makeSpectrogramRenderer(canvas, getAnalyser) {
     }
   };
 }
-
 function drawVad() {
   const ctx = $vad.getContext("2d");
   const w = $vad.width, h = $vad.height;
-  ctx.fillStyle = "#0a0a0d";
-  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "#0a0a0d"; ctx.fillRect(0, 0, w, h);
   const now = performance.now();
   const start = now - VAD_WINDOW_MS;
   while (vadHistory.length > 1 && vadHistory[1].t < start) vadHistory.shift();
-  if (vadHistory.length === 0) return;
-  ctx.strokeStyle = "rgb(183,125,184)";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
+  if (!vadHistory.length) return;
+  ctx.strokeStyle = "rgb(183,125,184)"; ctx.lineWidth = 1.5; ctx.beginPath();
   const tToX = (t) => ((t - start) / VAD_WINDOW_MS) * w;
   const yLow = h - 4, yHigh = 4;
   let prev = vadHistory[0].s ? yHigh : yLow;
-  ctx.moveTo(0, prev);
-  ctx.lineTo(tToX(vadHistory[0].t), prev);
+  ctx.moveTo(0, prev); ctx.lineTo(tToX(vadHistory[0].t), prev);
   for (let i = 0; i < vadHistory.length; i++) {
     const x = Math.max(0, Math.min(w, tToX(vadHistory[i].t)));
     const y = vadHistory[i].s ? yHigh : yLow;
-    ctx.lineTo(x, prev);
-    ctx.lineTo(x, y);
-    prev = y;
+    ctx.lineTo(x, prev); ctx.lineTo(x, y); prev = y;
   }
-  ctx.lineTo(w, prev);
-  ctx.stroke();
+  ctx.lineTo(w, prev); ctx.stroke();
   ctx.fillStyle = ctx.strokeStyle;
-  ctx.beginPath();
-  ctx.arc(w - 4, prev, 3, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(w - 4, prev, 3, 0, Math.PI * 2); ctx.fill();
 }
-
 function pushVad(speaking) {
   const t = performance.now();
   const last = vadHistory[vadHistory.length - 1];
   if (!last || last.s !== speaking) vadHistory.push({ t, s: speaking });
 }
 
+// ─── AIC setup ────────────────────────────────────────────────────────────────
 async function setupAic(stream) {
   const lr = await fetch("/aic-license");
   const licenseKey = (await lr.json()).key;
   if (!licenseKey) throw new Error("AIC_SDK_LICENSE missing in .env");
   await init();
+
+  // Fetch model with progress
+  $modelProgressWrap.classList.add("visible");
   const r = await fetch(MODEL_URL);
   if (!r.ok) throw new Error(`Model fetch failed: ${r.status}`);
-  const bytes = new Uint8Array(await r.arrayBuffer());
-  aicModel = Model.fromBytes(bytes);
+  const contentLength = parseInt(r.headers.get("content-length") || "0", 10);
+  const reader = r.body.getReader();
+  const chunks = [];
+  let received = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.byteLength;
+    if (contentLength) {
+      const pct = Math.round(received / contentLength * 100);
+      $modelProgressFill.style.width = pct + "%";
+      $modelProgressLabel.textContent = `Loading model… ${pct}%`;
+    }
+  }
+  $modelProgressWrap.classList.remove("visible");
+  const totalLen = chunks.reduce((s, c) => s + c.byteLength, 0);
+  const combined = new Uint8Array(totalLen);
+  let offset = 0;
+  for (const c of chunks) { combined.set(c, offset); offset += c.byteLength; }
+
+  aicModel = Model.fromBytes(combined);
   const sampleRate = aicModel.getOptimalSampleRate();
   const numFrames = aicModel.getOptimalNumFrames(sampleRate);
   aicProc = new Processor(aicModel, licenseKey);
@@ -432,6 +908,12 @@ async function setupAic(stream) {
   log("aic.ready", { sampleRate, numFrames, modelId: aicModel.getId() });
 
   audioCtx = new AudioContext({ sampleRate });
+  // iOS Safari: resume after gesture
+  if (audioCtx.state === "suspended") await audioCtx.resume();
+  if (audioCtx.sampleRate !== sampleRate) {
+    log("aic.warn", { msg: `AudioContext sample rate ${audioCtx.sampleRate} != model ${sampleRate}` });
+  }
+
   const src = audioCtx.createMediaStreamSource(stream);
   const dst = audioCtx.createMediaStreamDestination();
   await audioCtx.audioWorklet.addModule("/static/aic-worklet.js");
@@ -439,39 +921,79 @@ async function setupAic(stream) {
     numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
     processorOptions: { numFrames }
   });
+  const frameDurationMs = (numFrames / sampleRate) * 1000;
   node.port.onmessage = (e) => {
     if (e.data.type === "frame") {
       const buf = new Float32Array(e.data.buffer);
       try {
+        const t0 = performance.now();
         aicProc.processInterleaved(buf, 1, numFrames);
-        pushVad(vadCtx.isSpeechDetected());
+        const elapsed = performance.now() - t0;
+        if (elapsed > frameDurationMs) log("aic.perf.warn", { elapsed_ms: elapsed.toFixed(1), budget_ms: frameDurationMs.toFixed(1) });
+        const isSpeech = vadCtx.isSpeechDetected();
+        pushVad(isSpeech);
+        // Only count as user speech when the agent is NOT speaking — otherwise
+        // the mic is picking up the agent's own output and we must ignore it.
+        if (isSpeech && !agentSpeaking) lastSpeechTime = performance.now();
+
+        if (audioMode === 'gate') {
+          const gateHoldMs = parseInt($gateHold.value, 10);
+          const holdActive = (performance.now() - lastSpeechTime) < gateHoldMs;
+          // Gate shuts when: agent is speaking (echo suppression) OR no user speech + hold expired
+          const vadGainTarget = (!agentSpeaking && (isSpeech || holdActive)) ? 1 : 0;
+          if (vadGainCurrent < vadGainTarget) {
+            vadGainCurrent = Math.min(vadGainCurrent + VAD_FADE_RATE, 1);
+          } else if (vadGainCurrent > vadGainTarget) {
+            vadGainCurrent = Math.max(vadGainCurrent - VAD_FADE_RATE, 0);
+          }
+          const isGateOpen = vadGainCurrent > 0.5;
+          if (isGateOpen !== gateWasOpen) {
+            gateWasOpen = isGateOpen;
+            const reason = isGateOpen ? "speech" : (agentSpeaking ? "agent" : "silence");
+            log(isGateOpen ? "gate.open" : "gate.closed", { reason, gain: vadGainCurrent.toFixed(2) });
+            tEvent(isGateOpen ? "gate.open" : "gate.closed", { reason });
+          }
+          if (vadGainCurrent < 1) {
+            for (let i = 0; i < buf.length; i++) buf[i] *= vadGainCurrent;
+          }
+        }
       } catch (err) { log("aic.error", { message: String(err) }); }
       node.port.postMessage({ type: "processed", buffer: buf.buffer }, [buf.buffer]);
     }
   };
-  src.connect(node);
-  node.connect(dst);
-
-  analyserRaw = audioCtx.createAnalyser();
-  analyserRaw.fftSize = 1024;
-  analyserRaw.smoothingTimeConstant = 0.55;
+  src.connect(node); node.connect(dst);
+  analyserRaw = audioCtx.createAnalyser(); analyserRaw.fftSize = 1024; analyserRaw.smoothingTimeConstant = 0.55;
   src.connect(analyserRaw);
-
-  analyserEnh = audioCtx.createAnalyser();
-  analyserEnh.fftSize = 1024;
-  analyserEnh.smoothingTimeConstant = 0.55;
+  analyserEnh = audioCtx.createAnalyser(); analyserEnh.fftSize = 1024; analyserEnh.smoothingTimeConstant = 0.55;
   node.connect(analyserEnh);
 
   const drawRaw = makeSpectrogramRenderer($specRaw, () => analyserRaw);
-  const drawEnh = makeSpectrogramRenderer($specEnh, () => $switch.classList.contains("on") ? analyserEnh : analyserRaw);
+  const drawEnh = makeSpectrogramRenderer($specEnh, () => audioMode !== 'raw' ? analyserEnh : analyserRaw);
+  const $gateStatus = document.getElementById("gate-status");
   let lastSpec = 0;
   const loop = (now) => {
     if (now - lastSpec > 30) { drawRaw(); drawEnh(); lastSpec = now; }
     drawVad();
+    // Update gate status badge
+    if ($gateStatus && audioMode === 'gate') {
+      const pct = Math.round(vadGainCurrent * 100);
+      if (agentSpeaking) {
+        $gateStatus.textContent = "gate MUTED (agent)";
+        $gateStatus.style.color = "var(--red)";
+      } else if (vadGainCurrent > 0) {
+        $gateStatus.textContent = `gate OPEN ${pct}%`;
+        $gateStatus.style.color = "var(--green)";
+      } else {
+        $gateStatus.textContent = "gate CLOSED";
+        $gateStatus.style.color = "var(--color-text-ter)";
+      }
+    } else if ($gateStatus) {
+      $gateStatus.textContent = audioMode === 'raw' ? "gate off (raw)" : "gate off (VF)";
+      $gateStatus.style.color = "var(--color-text-ter)";
+    }
     rafId = requestAnimationFrame(loop);
   };
   rafId = requestAnimationFrame(loop);
-
   return dst.stream.getAudioTracks()[0];
 }
 
@@ -481,7 +1003,6 @@ function applyControls() {
   if (procCtx) procCtx.setParameter(ProcessorParameter.EnhancementLevel, level);
   applyVad();
 }
-
 function applyVad() {
   const sens = parseInt($vadSens.value, 10) / 10;
   const hold = parseInt($vadHold.value, 10) / 100;
@@ -492,32 +1013,42 @@ function applyVad() {
     vadCtx.setParameter(VadParameter.SpeechHoldDuration, hold);
   }
 }
-
-function applySwitch() {
-  const on = $switch.classList.contains("on");
+function applyAudioMode() {
   const tag = document.getElementById("enh-tag");
   if (tag) {
-    tag.textContent = on ? "post-Quail VF 2.1" : "raw (AIC off)";
-    tag.classList.toggle("purple", on);
+    if (audioMode === 'raw') { tag.textContent = "raw (no processing)"; tag.classList.remove("purple"); }
+    else if (audioMode === 'enhance') { tag.textContent = "post-Quail VF 2.1"; tag.classList.add("purple"); }
+    else { tag.textContent = "post-Quail VF 2.1 + gated"; tag.classList.add("purple"); }
   }
   if (sender && rawTrack && enhancedTrack) {
-    sender.replaceTrack(on ? enhancedTrack : rawTrack);
-    log("aic.switch", { on, sending: on ? "enhanced" : "raw" });
+    sender.replaceTrack(audioMode === 'raw' ? rawTrack : enhancedTrack);
+    log("audio.mode", { mode: audioMode });
   }
 }
 
-$switch.addEventListener("click", () => {
-  const on = $switch.classList.toggle("on");
-  $switch.setAttribute("aria-checked", String(on));
-  applySwitch();
+$modeToggle.addEventListener("click", (e) => {
+  const btn = e.target.closest(".mode-btn");
+  if (!btn) return;
+  audioMode = btn.dataset.mode;
+  $modeToggle.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b === btn));
+  applyAudioMode();
 });
-$level.addEventListener("input", () => {
-  $levelVal.textContent = (parseInt($level.value, 10) / 100).toFixed(2);
-  applyControls();
-});
+$gateHold.addEventListener("input", () => { $gateHoldVal.textContent = $gateHold.value; });
+$level.addEventListener("input", () => { $levelVal.textContent = (parseInt($level.value, 10) / 100).toFixed(2); applyControls(); });
 $vadSens.addEventListener("input", applyVad);
 $vadHold.addEventListener("input", applyVad);
 
+// ─── Debug toggle (mobile) ────────────────────────────────────────────────────
+let debugVisible = true;
+$debugSection.style.display = "";
+$debugToggle.textContent = "▾ Hide debug panels";
+$debugToggle.addEventListener("click", () => {
+  debugVisible = !debugVisible;
+  $debugSection.style.display = debugVisible ? "" : "none";
+  $debugToggle.textContent = (debugVisible ? "▾ Hide" : "▸ Show") + " debug panels";
+});
+
+// ─── Recording ───────────────────────────────────────────────────────────────
 const $rec = document.getElementById("rec");
 const $recLabel = document.getElementById("rec-label");
 const $recordings = document.getElementById("recordings");
@@ -528,12 +1059,8 @@ function pickMime() {
   }
   return "";
 }
-
-function startRecording() {
-  if (!connected || !rawTrack || !enhancedTrack) {
-    log("rec.error", { message: "Not connected — start the mic first" });
-    return;
-  }
+function startRecording(taskId, vfOn) {
+  if (!connected || !rawTrack || !enhancedTrack) { log("rec.error", { message: "Not connected" }); return; }
   const mime = pickMime();
   const ext = mime.startsWith("audio/mp4") ? "m4a" : "webm";
   chunksRaw = []; chunksEnh = [];
@@ -544,59 +1071,139 @@ function startRecording() {
   let stopped = 0;
   const onStop = () => {
     if (++stopped < 2) return;
-    finalizeRecording(mime, ext);
+    finalizeRecording(mime, ext, taskId, vfOn);
   };
-  recRaw.onstop = onStop;
-  recEnh.onstop = onStop;
+  recRaw.onstop = onStop; recEnh.onstop = onStop;
   recStart = Date.now();
-  recRaw.start();
-  recEnh.start();
-  recording = true;
-  $rec.classList.add("recording");
-  $recLabel.textContent = "Stop";
-  log("rec.start", { mime });
+  recRaw.start(); recEnh.start();
+  // Start timeline collection (100 ms snapshots)
+  runTimeline = [];
+  runStartMs = Date.now();
+  if (timelineInterval) clearInterval(timelineInterval);
+  timelineInterval = setInterval(() => {
+    const lastVad = vadHistory[vadHistory.length - 1];
+    runTimeline.push({
+      t: Date.now() - runStartMs, type: 's',
+      g: parseFloat(vadGainCurrent.toFixed(2)),
+      a: agentSpeaking ? 1 : 0,
+      v: lastVad?.s ? 1 : 0
+    });
+  }, 500);
+  recording = true; benchRecordingTaskId = taskId || null;
+  if (!taskId) { $rec.classList.add("recording"); $recLabel.textContent = "Stop"; }
+  log("rec.start", { mime, taskId });
 }
-
 function stopRecording() {
   if (!recording) return;
   recording = false;
-  $rec.classList.remove("recording");
-  $recLabel.textContent = "Record";
+  if (timelineInterval) { clearInterval(timelineInterval); timelineInterval = null; }
+  $rec.classList.remove("recording"); $recLabel.textContent = "Record";
   try { recRaw && recRaw.state !== "inactive" && recRaw.stop(); } catch {}
   try { recEnh && recEnh.state !== "inactive" && recEnh.stop(); } catch {}
 }
-
-function finalizeRecording(mime, ext) {
+function finalizeRecording(mime, ext, taskId, vfOn) {
   const dur = ((Date.now() - recStart) / 1000).toFixed(1);
   const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const prefix = taskId ? `${taskId}_vf-${vfOn ? "on" : "off"}_${stamp}` : stamp;
   const blobRaw = new Blob(chunksRaw, { type: mime });
   const blobEnh = new Blob(chunksEnh, { type: mime });
   const urlRaw = URL.createObjectURL(blobRaw);
   const urlEnh = URL.createObjectURL(blobEnh);
+  // JSON sidecar: timeline + transcripts
+  const sidecar = {
+    prefix, duration_s: parseFloat(dur),
+    started: new Date(runStartMs).toISOString(),
+    audio_mode: audioMode,
+    timeline: runTimeline.slice(),
+    user_transcripts: userFinals.slice(),
+    agent_transcripts: agentFinals.slice()
+  };
+  allRecordings.unshift(sidecar);
+  const blobLog = new Blob([JSON.stringify(sidecar)], { type: 'application/json' });
+  const urlLog = URL.createObjectURL(blobLog);
   const row = document.createElement("div");
   row.className = "rec-row";
-  row.innerHTML = `
-    <span class="rec-time">${stamp.slice(11)}</span>
-    <span class="rec-dur">${dur}s</span>
-    <a href="${urlRaw}" download="${stamp}-raw.${ext}">raw.${ext}</a>
-    <a href="${urlEnh}" download="${stamp}-enhanced.${ext}" class="enh">enhanced.${ext}</a>
-  `;
+  row.innerHTML = `<span class="rec-time">${stamp.slice(11)}</span><span class="rec-dur">${dur}s</span><a href="${urlRaw}" download="${prefix}-raw.${ext}">raw.${ext}</a><a href="${urlEnh}" download="${prefix}-enhanced.${ext}" class="enh">enhanced.${ext}</a><a href="${urlLog}" download="${prefix}-log.json" class="logdl">log.json</a>`;
   $recordings.insertBefore(row, $recordings.firstChild);
-  log("rec.done", { dur, sizeRaw: blobRaw.size, sizeEnh: blobEnh.size });
+  log("rec.done", { dur, sizeRaw: blobRaw.size, sizeEnh: blobEnh.size, prefix });
+}
+$rec.addEventListener("click", () => recording ? stopRecording() : startRecording(null, null));
+
+// ─── Network quality ──────────────────────────────────────────────────────────
+async function pollNetStats() {
+  if (!pc) return;
+  try {
+    const stats = await pc.getStats();
+    let loss = null, jitter = null;
+    stats.forEach(r => {
+      if (r.type === "inbound-rtp" && r.kind === "audio") {
+        if (r.packetsLost !== undefined && r.packetsReceived !== undefined) {
+          const total = r.packetsLost + r.packetsReceived;
+          loss = total ? r.packetsLost / total : 0;
+        }
+        if (r.jitter !== undefined) jitter = r.jitter;
+      }
+    });
+    if (loss === null) return;
+    $netQuality.style.display = "";
+    let cls = "good";
+    if (loss > 0.05 || jitter > 0.05) cls = "fair";
+    if (loss > 0.1 || jitter > 0.1) cls = "poor";
+    $netQuality.className = "net-quality " + cls;
+    $netQualityLabel.textContent = `loss:${(loss*100).toFixed(1)}% jitter:${jitter !== null ? (jitter*1000).toFixed(0)+"ms" : "—"}`;
+  } catch {}
 }
 
-$rec.addEventListener("click", () => recording ? stopRecording() : startRecording());
+// ─── Wake lock ────────────────────────────────────────────────────────────────
+async function requestWakeLock() {
+  try { wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { console.log("Wake lock unavailable:", e); }
+}
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+}
 
+// ─── Echo test mode ───────────────────────────────────────────────────────────
+const $echoTestToggle = document.getElementById("echo-test-toggle");
+$echoTestToggle.addEventListener("click", () => {
+  echoTestMode = !echoTestMode;
+  $echoTestToggle.textContent = `Echo Test: ${echoTestMode ? "ON" : "OFF"}`;
+  $echoTestToggle.style.borderColor = echoTestMode ? "rgba(248,113,113,0.5)" : "";
+  $echoTestToggle.style.color = echoTestMode ? "var(--red)" : "";
+  $echoBanner.classList.toggle("visible", echoTestMode);
+  $echoCounters.classList.toggle("visible", echoTestMode);
+});
+
+// Headphone detection
+if (navigator.mediaDevices) {
+  navigator.mediaDevices.addEventListener("devicechange", async () => {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const hasHeadphones = devices.some(d => d.kind === "audiooutput" && /headphone|earphone|airpod|bluetooth/i.test(d.label));
+    if (hasHeadphones && echoTestMode) {
+      log("echo.warn", { message: "Headphones detected — echo test requires speaker output" });
+    }
+  });
+}
+
+// ─── Connect / disconnect ─────────────────────────────────────────────────────
 async function connect() {
   try {
     setStatus("connecting", "Connecting");
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Echo-test mode: disable everything so we measure raw echo behaviour.
+    // Raw mode: let the browser handle AEC/NS/AGC natively.
+    // VF / VF+Gate: disable NS and AGC so QuailVF gets an unprocessed signal,
+    //   but keep echoCancellation ON as a backstop against runaway feedback.
+    const audioConstraints = echoTestMode
+      ? { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+      : audioMode === 'raw'
+        ? { echoCancellation: true,  noiseSuppression: true,  autoGainControl: true  }
+        : { echoCancellation: true,  noiseSuppression: false, autoGainControl: false };
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
     rawTrack = micStream.getAudioTracks()[0];
     enhancedTrack = await setupAic(micStream);
+
     pc = new RTCPeerConnection();
     pc.ontrack = (e) => { $audio.srcObject = e.streams[0]; };
-    const startOn = $switch.classList.contains("on");
-    sender = pc.addTrack(startOn ? enhancedTrack : rawTrack);
+    sender = pc.addTrack(audioMode === 'raw' ? rawTrack : enhancedTrack);
     dc = pc.createDataChannel("oai-events");
     dc.onopen = () => {
       const update = {
@@ -621,6 +1228,9 @@ async function connect() {
     setStatus("live", "Live");
     $mic.classList.add("live");
     connected = true;
+    $netQuality.style.display = "";
+    netStatInterval = setInterval(pollNetStats, 3000);
+    await requestWakeLock();
   } catch (err) {
     console.error(err);
     setStatus("error", "Error");
@@ -632,6 +1242,7 @@ async function connect() {
 function cleanup() {
   if (recording) stopRecording();
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  if (netStatInterval) { clearInterval(netStatInterval); netStatInterval = null; }
   if (dc) { try { dc.close(); } catch {} dc = null; }
   if (pc) { try { pc.close(); } catch {} pc = null; }
   if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
@@ -643,11 +1254,413 @@ function cleanup() {
   sender = null; rawTrack = null; enhancedTrack = null;
   vadHistory.length = 0;
   $mic.classList.remove("live");
+  $netQuality.style.display = "none";
   connected = false;
+  releaseWakeLock();
+  if (benchRunning) finishBenchRun();
 }
 function disconnect() { cleanup(); setStatus("", "Disconnected"); }
 $mic.addEventListener("click", () => { connected ? disconnect() : connect(); });
 setStatus("", "Disconnected");
+
+// ════════════════════════════════════════════════════════════════════════════
+//  BENCHMARK ENGINE
+// ════════════════════════════════════════════════════════════════════════════
+
+let allTasks = [];
+let benchRunning = false;
+let currentTask = null;
+let currentLineIdx = 0;
+let currentRunVf = true;
+let runAllQueue = [];
+let runAllIdx = 0;
+let allResults = [];
+
+// Per-run state
+let runToolCalls = [];        // { name, args }
+let runTranscripts = [];      // { ref, hyp, wer }
+let runUtteranceIdx = 0;      // which script line we're on for transcript matching
+let countdownTimer = null;
+
+// DOM bench refs
+const $benchTaskSelect = document.getElementById("bench-task-select");
+const $benchStartBtn = document.getElementById("bench-start-btn");
+const $benchRunAllBtn = document.getElementById("bench-run-all-btn");
+const $benchStopBtn = document.getElementById("bench-stop-btn");
+const $scriptPanel = document.getElementById("script-panel");
+const $scriptLine = document.getElementById("script-line");
+const $scriptCountdown = document.getElementById("script-countdown");
+const $scriptProgress = document.getElementById("script-progress");
+const $scriptNextBtn = document.getElementById("script-next-btn");
+const $rsRun = document.getElementById("rs-run");
+const $rsTask = document.getElementById("rs-task");
+const $rsVf = document.getElementById("rs-vf");
+const $rsCat = document.getElementById("rs-cat");
+const $conditionNote = document.getElementById("condition-note");
+const $mcTaskVal = document.getElementById("mc-task-val");
+const $mcTaskCard = document.getElementById("mc-task");
+const $mcTaskSub = document.getElementById("mc-task-sub");
+const $mcWer = document.getElementById("mc-wer");
+const $mcWerSub = document.getElementById("mc-wer-sub");
+const $mcIntr = document.getElementById("mc-intr");
+const $mcIntrSub = document.getElementById("mc-intr-sub");
+const $mcLat = document.getElementById("mc-lat");
+const $resultsTbody = document.getElementById("results-tbody");
+const $resultsToggleBtn = document.getElementById("results-toggle-btn");
+const $resultsBody = document.getElementById("results-body");
+
+// Load tasks
+async function loadTasks() {
+  try {
+    const r = await fetch("/tasks");
+    allTasks = await r.json();
+    $benchTaskSelect.innerHTML = `<option value="">— select task —</option>` +
+      allTasks.map(t => `<option value="${t.id}">[${t.category}] ${t.id} (${t.difficulty})</option>`).join("");
+  } catch (e) { $benchTaskSelect.innerHTML = `<option value="">Failed to load tasks</option>`; }
+}
+loadTasks();
+
+$resultsToggleBtn.addEventListener("click", () => {
+  const open = $resultsBody.classList.toggle("open");
+  $resultsToggleBtn.textContent = (open ? "▾" : "▸") + ` Results (${allResults.length} runs)`;
+});
+
+$benchStartBtn.addEventListener("click", () => {
+  const id = $benchTaskSelect.value;
+  if (!id) return;
+  const task = allTasks.find(t => t.id === id);
+  if (!task) return;
+  startBenchRun(task, null);
+});
+
+$benchRunAllBtn.addEventListener("click", () => {
+  // Build queue: for each task, run Raw → VF → Gate
+  runAllQueue = [];
+  for (const task of allTasks) {
+    runAllQueue.push({ task, mode: 'raw' });
+    runAllQueue.push({ task, mode: 'enhance' });
+    runAllQueue.push({ task, mode: 'gate' });
+  }
+  runAllIdx = 0;
+  runNextInQueue();
+});
+
+$benchStopBtn.addEventListener("click", () => {
+  finishBenchRun();
+  runAllQueue = []; runAllIdx = 0;
+});
+
+function runNextInQueue() {
+  if (runAllIdx >= runAllQueue.length) {
+    log("bench.all-done", { totalRuns: allResults.length });
+    return;
+  }
+  const { task, mode } = runAllQueue[runAllIdx];
+  // Set audio mode to match
+  if (audioMode !== mode) {
+    audioMode = mode;
+    $modeToggle.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+    applyAudioMode();
+  }
+  startBenchRun(task, () => {
+    runAllIdx++;
+    setTimeout(runNextInQueue, 1500);
+  });
+}
+
+function startBenchRun(task, onComplete) {
+  if (benchRunning) finishBenchRun();
+  currentTask = task;
+  currentLineIdx = 0;
+  currentRunVf = audioMode !== 'raw';
+  runToolCalls = [];
+  runTranscripts = [];
+  runUtteranceIdx = 0;
+  benchRunning = true;
+  latencyMeasurements = [];
+  selfInterruptions = 0;
+  echoTranscripts = [];
+  agentResponsesTotal = 0;
+  agentResponsesCompleted = 0;
+
+  // Start recording
+  startRecording(task.id, currentRunVf);
+
+  $scriptPanel.style.display = "";
+  $benchStopBtn.disabled = false;
+  $benchStartBtn.disabled = true;
+  $benchRunAllBtn.disabled = true;
+  $benchTaskSelect.disabled = true;
+
+  updateRunStatusBar();
+  advanceScriptLine();
+
+  // Store callback for run-all
+  currentTask._onComplete = onComplete;
+
+  updateMetrics();
+  log("bench.start", { task: task.id, audioMode, category: task.category });
+}
+
+function finishBenchRun() {
+  if (!benchRunning) return;
+  benchRunning = false;
+
+  if (recording) stopRecording();
+
+  const result = buildRunResult();
+  allResults.push(result);
+  appendResultRow(result);
+  $resultsToggleBtn.textContent = `▾ Results (${allResults.length} runs)`;
+  $resultsBody.classList.add("open");
+
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+  $scriptPanel.style.display = "none";
+  $benchStopBtn.disabled = true;
+  $benchStartBtn.disabled = false;
+  $benchRunAllBtn.disabled = false;
+  $benchTaskSelect.disabled = false;
+
+  log("bench.done", { task: currentTask?.id, passed: result.task_passed });
+
+  const cb = currentTask?._onComplete;
+  currentTask = null;
+  if (cb) cb();
+}
+
+function advanceScriptLine() {
+  if (!currentTask) return;
+  const lines = currentTask.script;
+  if (currentLineIdx >= lines.length) {
+    finishBenchRun();
+    return;
+  }
+  const line = lines[currentLineIdx];
+  const waitMatch = line.match(/^\[WAIT\s+(\d+)\s+SECONDS?\]/i);
+  if (waitMatch) {
+    const secs = parseInt(waitMatch[1], 10);
+    $scriptLine.textContent = "";
+    $scriptLine.className = "script-line wait-line";
+    $scriptCountdown.style.display = "";
+    $scriptNextBtn.disabled = true;
+    // Show user-silent during wait
+    document.getElementById("user-silent-badge").classList.add("visible");
+    let remaining = secs;
+    $scriptCountdown.textContent = remaining + "s";
+    countdownTimer = setInterval(() => {
+      remaining--;
+      $scriptCountdown.textContent = remaining + "s";
+      if (remaining <= 0) {
+        clearInterval(countdownTimer); countdownTimer = null;
+        $scriptCountdown.style.display = "none";
+        $scriptLine.className = "script-line";
+        document.getElementById("user-silent-badge").classList.remove("visible");
+        currentLineIdx++;
+        advanceScriptLine();
+      }
+    }, 1000);
+  } else {
+    $scriptLine.textContent = line;
+    $scriptLine.className = "script-line" + (line.startsWith("[INTERRUPT]") ? " wait-line" : "");
+    $scriptCountdown.style.display = "none";
+    $scriptNextBtn.disabled = false;
+  }
+  $scriptProgress.textContent = `Line ${currentLineIdx + 1} / ${lines.length}`;
+  updateRunStatusBar();
+}
+
+$scriptNextBtn.addEventListener("click", () => {
+  if (!benchRunning || !currentTask) return;
+  const line = currentTask.script[currentLineIdx];
+  if (line && line.startsWith("[WAIT")) return;
+  // Signal user intends to speak
+  userIntendsSpeech = true;
+  document.getElementById("user-silent-badge").classList.remove("visible");
+  runUtteranceIdx = currentLineIdx;
+  currentLineIdx++;
+  advanceScriptLine();
+});
+
+function updateRunStatusBar() {
+  if (!currentTask) { $rsRun.textContent = "—"; $rsTask.textContent = "—"; $rsVf.textContent = "—"; $rsCat.textContent = "—"; return; }
+  $rsRun.textContent = `${allResults.length + 1}`;
+  $rsTask.textContent = currentTask.id;
+  $rsVf.textContent = audioMode === 'gate' ? 'VF+Gate' : audioMode === 'enhance' ? 'VF' : 'Raw';
+  $rsVf.className = "rs-val " + (audioMode === 'raw' ? "vf-off" : "vf-on");
+  $rsCat.textContent = currentTask.category;
+}
+
+// ─── Per-run data collection ──────────────────────────────────────────────────
+function benchRecordToolCall(name, args) {
+  if (!benchRunning) return;
+  runToolCalls.push({ name, args });
+  updateMetrics();
+}
+
+function benchRecordTranscript(hyp) {
+  if (!benchRunning || !currentTask) return;
+  const lines = currentTask.script;
+  // Match to the last script line that was non-wait
+  const refIdx = runUtteranceIdx;
+  const ref = lines[refIdx] || "";
+  if (!ref || ref.startsWith("[WAIT") || ref.startsWith("[INTERRUPT")) return;
+  const wer = computeWer(ref, hyp);
+  runTranscripts.push({ ref, hyp, wer });
+  updateMetrics();
+}
+
+function updateMetrics() {
+  if (!currentTask) return;
+  // WER
+  if (runTranscripts.length) {
+    const avg = runTranscripts.reduce((s, t) => s + t.wer, 0) / runTranscripts.length;
+    $mcWer.textContent = (avg * 100).toFixed(1) + "%";
+    $mcWerSub.textContent = `${runTranscripts.length} utterance(s)`;
+  }
+  // Interruptions
+  $mcIntr.textContent = selfInterruptions;
+  $mcIntrSub.textContent = `${selfInterruptions} / ${agentResponsesTotal} responses`;
+  // Latency
+  if (latencyMeasurements.length) {
+    const avg = latencyMeasurements.reduce((s, v) => s + v, 0) / latencyMeasurements.length;
+    $mcLat.textContent = Math.round(avg);
+  }
+  // Task pass (preliminary)
+  const pass = evaluateTaskPass();
+  $mcTaskVal.textContent = pass === null ? "…" : pass ? "PASS" : "FAIL";
+  $mcTaskCard.className = "metric-card" + (pass === true ? " pass" : pass === false ? " fail" : "");
+  $mcTaskSub.textContent = `${runToolCalls.length} tool call(s)`;
+}
+
+function evaluateTaskPass() {
+  if (!currentTask || !currentTask.expected_tool_calls?.length) return null;
+  const expected = currentTask.expected_tool_calls;
+  let matched = 0;
+  for (const exp of expected) {
+    if (runToolCalls.some(rc => scoreToolCall(rc, exp))) matched++;
+  }
+  if (matched === 0 && runToolCalls.length === 0) return null; // not enough data
+  return matched === expected.length;
+}
+
+function buildRunResult() {
+  const task = currentTask;
+  const avgWer = runTranscripts.length ? runTranscripts.reduce((s, t) => s + t.wer, 0) / runTranscripts.length : null;
+  const avgLat = latencyMeasurements.length ? latencyMeasurements.reduce((s, v) => s + v, 0) / latencyMeasurements.length : null;
+  const pass = evaluateTaskPass();
+  return {
+    task_id: task.id,
+    category: task.category,
+    audio_mode: audioMode,
+    vf_enabled: audioMode !== 'raw',
+    vad_gate_hold_ms: parseInt($gateHold.value, 10),
+    echo_test_mode: echoTestMode,
+    timestamp: new Date().toISOString(),
+    task_passed: pass,
+    tool_calls: runToolCalls.map((rc, i) => {
+      const exp = task.expected_tool_calls?.[i] || null;
+      return {
+        name: rc.name,
+        received_args: rc.args,
+        expected_args: exp?.expected_args || null,
+        match: exp ? scoreToolCall(rc, exp) : null
+      };
+    }),
+    wer_per_utterance: runTranscripts.map(t => parseFloat(t.wer.toFixed(4))),
+    wer_average: avgWer !== null ? parseFloat(avgWer.toFixed(4)) : null,
+    false_interruptions: selfInterruptions,
+    total_agent_responses: agentResponsesTotal,
+    interruption_rate: agentResponsesTotal ? parseFloat((selfInterruptions / agentResponsesTotal).toFixed(4)) : 0,
+    avg_latency_ms: avgLat !== null ? Math.round(avgLat) : null,
+    self_interruptions: selfInterruptions,
+    self_interruption_rate: agentResponsesTotal ? parseFloat((selfInterruptions / agentResponsesTotal).toFixed(4)) : 0,
+    ghost_transcripts: [...echoTranscripts],
+    agent_completion_rate: agentResponsesTotal ? parseFloat((agentResponsesCompleted / agentResponsesTotal).toFixed(4)) : null,
+    agent_responses_total: agentResponsesTotal,
+    agent_responses_completed: agentResponsesCompleted,
+    user_transcripts: runTranscripts.map(t => ({ ref: t.ref, hyp: t.hyp, wer: t.wer })),
+    condition_notes: $conditionNote.value.trim(),
+    difficulty: task.difficulty,
+    timeline: runTimeline.slice()
+  };
+}
+
+// ─── Results table ────────────────────────────────────────────────────────────
+function appendResultRow(r) {
+  const tr = document.createElement("tr");
+  const modeLabel = r.audio_mode === 'gate' ? 'VF+Gate' : r.audio_mode === 'enhance' ? 'VF' : 'Raw';
+  const modeColor = r.audio_mode === 'raw' ? 'var(--orange)' : 'var(--green)';
+  const modeCell = `<td style="color:${modeColor};">${modeLabel}</td>`;
+  const passCell = `<td class="${r.task_passed === true ? "better" : r.task_passed === false ? "worse" : "neutral"}">${r.task_passed === true ? "✓" : r.task_passed === false ? "✗" : "?"}</td>`;
+  tr.innerHTML = `
+    <td>${r.task_id}</td>
+    ${modeCell}
+    ${passCell}
+    <td>${r.wer_average !== null ? (r.wer_average * 100).toFixed(1) + "%" : "—"}</td>
+    <td>${r.interruption_rate !== null ? (r.interruption_rate * 100).toFixed(0) + "%" : "—"}</td>
+    <td>${r.avg_latency_ms !== null ? r.avg_latency_ms : "—"}</td>
+    <td>${r.self_interruptions}</td>
+    <td>${r.ghost_transcripts.length}</td>
+    <td>${r.agent_completion_rate !== null ? (r.agent_completion_rate * 100).toFixed(0) + "%" : "—"}</td>
+    <td title="${r.condition_notes}">${r.condition_notes.slice(0, 20) || "—"}</td>
+    <td>${new Date(r.timestamp).toTimeString().slice(0, 8)}</td>`;
+  $resultsTbody.appendChild(tr);
+}
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+async function shareOrDownload(blob, filename) {
+  if (navigator.canShare && navigator.canShare({ files: [new File([blob], filename)] })) {
+    try {
+      await navigator.share({ files: [new File([blob], filename)], title: "Benchmark Results" });
+      return;
+    } catch {}
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+document.getElementById("export-json-btn").addEventListener("click", async () => {
+  const blob = new Blob([JSON.stringify(allResults, null, 2)], { type: "application/json" });
+  await shareOrDownload(blob, `bench-results-${new Date().toISOString().slice(0,10)}.json`);
+});
+
+document.getElementById("export-csv-btn").addEventListener("click", async () => {
+  const headers = ["task_id","category","audio_mode","vf_enabled","vad_gate_hold_ms","task_passed","wer_average","interruption_rate","avg_latency_ms","self_interruptions","ghost_transcripts","agent_completion_rate","condition_notes","timestamp"];
+  const rows = allResults.map(r => headers.map(h => {
+    const v = h === "ghost_transcripts" ? r.ghost_transcripts.length : r[h];
+    return JSON.stringify(v !== undefined && v !== null ? v : "");
+  }).join(","));
+  const csv = [headers.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  await shareOrDownload(blob, `bench-results-${new Date().toISOString().slice(0,10)}.csv`);
+});
+
+function buildReplayData() {
+  const data = [...allRecordings, ...allResults];
+  if (userFinals.length || agentFinals.length || runTimeline.length) {
+    data.push({
+      prefix: recording ? "live-recording (in progress)" : "live-session",
+      duration_s: runStartMs ? (Date.now() - runStartMs) / 1000 : 0,
+      started: new Date(runStartMs || Date.now()).toISOString(),
+      audio_mode: audioMode,
+      timeline: runTimeline.slice(),
+      user_transcripts: userFinals.slice(),
+      agent_transcripts: agentFinals.slice()
+    });
+  }
+  return data;
+}
+window.__replayData__ = null;
+document.getElementById("open-replay-btn").addEventListener("click", () => {
+  const data = buildReplayData();
+  if (!data.length) { alert("No data yet — talk to the agent, record a session, or run a benchmark task first."); return; }
+  window.__replayData__ = data;
+  try { localStorage.setItem("replay_autoload", JSON.stringify(data)); } catch (e) { console.warn("localStorage write failed", e); }
+  const win = window.open("/static/replay.html", "_blank");
+  if (!win) alert("Popup blocked — allow popups for this site and try again.");
+});
 </script>
 </body>
 </html>

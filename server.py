@@ -4,7 +4,7 @@ import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 load_dotenv()
 app = FastAPI()
@@ -13,8 +13,23 @@ SESSION_CONFIG = {
     "type": "realtime",
     "model": "gpt-realtime-2",
     "audio": {"output": {"voice": "shimmer"}},
-    "instructions": "You are a friendly scheduling assistant. You can check calendar availability. Keep responses brief and conversational.",
+    "instructions": (
+        "You are a friendly scheduling assistant. You can check calendar availability, "
+        "book meetings, cancel meetings, and update contact names. "
+        "When booking or cancelling, always confirm the details back to the user. "
+        "Keep responses conversational but thorough when asked about rooms or schedules. "
+        "When asked about available meeting rooms, describe several fictional rooms with "
+        "capacity and floor numbers (e.g. Room A1 on floor 1 capacity 4, Room B2 on floor 2 "
+        "capacity 10, Room C3 on floor 3 capacity 20). "
+        "When asked about schedules, invent a plausible but brief week overview."
+    ),
 }
+
+
+@app.get("/tasks")
+async def get_tasks():
+    with open("tasks.json") as f:
+        return JSONResponse(content=json.load(f))
 
 
 @app.get("/aic-license")
