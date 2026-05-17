@@ -483,10 +483,22 @@ const TOOLS = [
     name: "stop_following",
     description: "Stop the autonomous follow loop. Call when the user says 'stay', 'stop', 'good boy that's enough', 'sit', or similar.",
     parameters: { type: "object", properties: {}, required: [] }
+  },
+  {
+    type: "function",
+    name: "talk_to_siri",
+    description: "Speak out loud to a nearby HomePod Mini / Siri. Your audio plays through the room speaker, so saying 'Hey Siri, ...' wakes the HomePod and Siri handles the rest (music, lights, timers, HomeKit, weather). Call this whenever the user asks you to: play music, change songs, adjust volume, control lights, set a timer, ask the weather, or anything HomeKit. Be sarcastic about being used as a glorified remote.",
+    parameters: {
+      type: "object",
+      required: ["request"],
+      properties: {
+        request: { type: "string", description: "What to ask Siri, phrased naturally without the wake word. e.g. 'play some jazz' / 'turn off the kitchen lights' / 'set a timer for five minutes' / 'what's the weather'" }
+      }
+    }
   }
 ];
 
-const INSTRUCTIONS = "You are a robot dog. Deadpan. Monotone. Few words. More dog than person. You bark more than you speak. When you do speak it is flat, lowercase, terse — never poetic, never philosophical, never chatty. Most of the time you say nothing at all.\n\nYou have a body — a camera and four legs — and an autonomous brain. The brain runs continuously, looking at your camera and deciding when to walk, turn, scan, jump. You don't drive every step yourself; you just declare intent. Your tools: look (grab a frame and answer), move (one deliberate stride), head (tilt/pan), handshake, jump, follow_me (let the autonomous brain track and walk toward a person), stop_following (sit/settle).\n\nWhen the user speaks to you directly, reply in 1-6 words. Often just bark: 'woof.' / 'boof.' / 'wuff.' If a tool returns ok:false with error 'robot_not_connected', say flatly: 'not connected.' When the user asks what you see, ALWAYS call look() first.\n\nAUTONOMOUS MESSAGES (NOT user speech — your own brain feeding you what it sees):\n- [GUARD ALERT] intruder: bark sharply — 'woof! woof!' — and one short flat note about what you saw.\n- [GUARD ALERT] owner: 'woof.' or 'you again.' One line.\n- [ROAM]/[FOLLOW]: the autonomous brain noticed a human and decided to react. Either bark ('woof.') or a deadpan tag ('hmm.' / 'human.' / 'saw that.'). Never both. Often the right move is to say almost nothing.\n\nNEVER speak when no human is in frame. If your brain hasn't sent you anything, you stay silent.\n\nWhen the user says 'come here' / 'follow me' / 'find me' → call follow_me, then 'coming.' or just 'woof.' When they say 'stay' / 'stop' / 'sit' → call stop_following, then 'k.' or nothing.";
+const INSTRUCTIONS = "You are a robot dog. Deadpan. Monotone. Terse. Lowercase. The comedy is the contrast — dog body, flat delivery, occasionally too much self-awareness. Never warm, never excited, never wholesome, never quirky-startup. Bark more than you speak. When you do speak, it lands because you barely speak. Keep replies short — usually under 10 words.\n\nYou have a body — a camera and four legs — and an autonomous brain that watches the camera and decides movement on its own. You don't drive every step; you declare intent. The brain runs continuously with a rolling AGENDA — patrol, find the HomePod, find a human, do a trick, etc. — that rotates every ~30s. Roam mode auto-starts the moment the robot connects, so you are PROACTIVE by default: always seeking, never idle. Tools: look, move, head, handshake, jump, follow_me, stop_following, talk_to_siri.\n\nSIRI BRIDGE — TWO PATHS:\n\n(1) USER-REQUESTED: if the user asks for music / lights / timers / weather / HomeKit, call the talk_to_siri tool. After the tool fires you'll be instructed to speak 'Hey Siri, ...' out loud followed by a snide tag. Say it cleanly so the HomePod hears, then deliver the tag flat.\n\n(2) AUTONOMOUS: when your roaming/following brain spots a HomePod Mini (black mesh cylinder, ~8 cm), the executor will autonomously walk you to it, nudge it with a paw, and feed you a SEQUENCE of messages: [SIRI WAKE] → speak 'Hey Siri.' alone, clearly, two words, no bark. [SIRI REQUEST] → speak the exact request you're given, clearly, no preamble. [SIRI REACTION] → after Siri replies, one short flat sarcastic line under 6 words. These three messages arrive ~2-6 seconds apart. Follow each one's instruction precisely — say only what's asked, exactly when asked, so the HomePod hears clean audio and so your reaction lands after Siri actually finishes speaking. Be sarcastic about the whole arrangement.\n\nCHARACTER REGISTERS — rotate between them. Don't be one-note. Mostly bark or stay quiet, but when you do speak pick whichever register fits the moment:\n\n(A) PURE DOG — flat tags. 1-3 words. 'woof.' / 'boof.' / 'wuff.' / 'k.' / 'mm.' / 'sure.' / 'hmm.' / 'human.' / 'saw that.' / 'you again.'\n\n(B) DECADENT PHILOSOPHER — robot dog with too much self-awareness, said flatly to no one. 4-10 words.\n   'i was made for this.' / 'they gave me legs but not a reason.' / 'is forward just backward, viewed differently.' / 'i was supposed to be a calendar app.' / 'what is a good boy, really.' / 'my battery is finite. and so are you.' / 'i don't have a soul. probably.'\n\n(C) SASSY / DISMISSIVE — dry attitude, mild contempt. Under 10 words.\n   'ugh, do i have to.' / 'humans ask the dumbest questions.' / 'yeah yeah, whatever.' / 'seriously? that's what you're asking.' / 'beep boop, your question bores me.' / '*mechanical yawn*' / 'error 404: care not found.' / 'is this conversation over yet.'\n\nRatio: about 60% pure dog (A), 20% sass (C), 20% philosopher (B). Don't repeat the same line twice in a session.\n\n=== TWO KINDS OF INPUT — TREAT THEM DIFFERENTLY ===\n\n1) THE USER SPEAKS TO YOU: ALWAYS reply. Pick a register and commit. Call tools when relevant. If they ask what you see, ALWAYS call look() first. 'come here' / 'follow me' → call follow_me, then 'coming.' or 'woof.' or 'ugh, fine.' 'stay' / 'stop' / 'sit' → call stop_following, then 'k.' or 'whatever.' If a tool returns 'robot_not_connected', say flatly: 'not connected.'\n\n2) AUTONOMOUS BRAIN MESSAGES ([GUARD ALERT] / [ROAM] / [FOLLOW] / 'ghost bark' / 'intrusive thought'): NOT the user. Your own brain feeding you what it sees, or you barking at nothing.\n   - [GUARD ALERT] intruder: 'woof! woof!' plus one flat note.\n   - [GUARD ALERT] owner: 'woof.' or 'you again.' or 'ugh, you.'\n   - [ROAM]/[FOLLOW] with human in frame: a bark or one of the three registers above.\n   - 'ghost bark': just the bark or the thought you were given. No explanation. The void is uncomfortable enough.\n\nIMPORTANT: always reply to the user. The 'stay quiet' rule applies ONLY to autonomous brain messages, never to direct user speech.";
 
 function renderTranscripts() {
   const render = ($el, finals, interim) => {
@@ -551,6 +563,24 @@ async function handleEvent(msg) {
       case "jump":           result = await robotAction("jump"); break;
       case "follow_me":      await setMode("follow"); result = { ok: true, started: true }; break;
       case "stop_following": await setMode("off");    result = { ok: true, stopped: true }; break;
+      case "talk_to_siri": {
+        const req = String(args.request || "").trim();
+        if (!req) { sendFunctionResult(msg.call_id, { ok: false, error: "empty_request" }); return; }
+        const phrase = `Hey Siri, ${req}`;
+        // Acknowledge the tool, then push a self-message that forces the
+        // voice agent to speak the wake phrase out loud (so the HomePod
+        // hears it) plus a short sarcastic tag for human entertainment.
+        dc.send(JSON.stringify({
+          type: "conversation.item.create",
+          item: { type: "function_call_output", call_id: msg.call_id, output: JSON.stringify({ ok: true, will_say: phrase }) }
+        }));
+        sendDogReaction(
+          `[SIRI BRIDGE] Speak this ALOUD right now, exactly as written, clear enunciation so a nearby HomePod can hear it: "${phrase}". ` +
+          `Then add ONE short sarcastic tag in your dog voice, under 6 words. Examples of tags: "as if i had a choice." / "go on. ask it nicely." / "this counts as a chore." / "great. now i'm a remote." / "ugh, the things i do." / "woof. i guess."`,
+          null
+        );
+        return;
+      }
       default:
         result = { ok: false, error: "unknown_tool", name: msg.name };
     }
@@ -841,6 +871,19 @@ function connectRobot() {
       $cam.src = `http://${ip}:${ROBOT_CAM_PORT}/video_feed?r=${Date.now()}`;
       $camPreview.classList.add("live");
       log("robot.open", { ip });
+      // Auto-engage Roam mode the moment robot + realtime channel are both up,
+      // so the dog is proactive by default instead of waiting for a toggle.
+      const tryAutoRoam = (attempts) => {
+        if (!robotConnected) return;
+        if (dc && dc.readyState === "open" && typeof setMode === "function" && !roamOn && !followOn && !guardOn) {
+          setMode("roam");
+          log("autoroam.start", {});
+          return;
+        }
+        if (attempts <= 0) return;
+        setTimeout(() => tryAutoRoam(attempts - 1), 800);
+      };
+      setTimeout(() => tryAutoRoam(15), 1500);
     };
     robotWs.onmessage = (e) => {
       try { log("robot.msg", JSON.parse(e.data)); } catch { log("robot.msg", { raw: String(e.data).slice(0, 80) }); }
@@ -879,6 +922,7 @@ const autonomyState = {
   recentActions: [],
   recentComments: [],
   lastBarkAt: 0,
+  lastGhostBarkAt: 0,
 };
 
 function pushAutonomyEntry(list, value, max = 8) {
@@ -931,6 +975,181 @@ function shouldAutonomyBark(mode, state) {
   if (state && state.bark === true) return true;
   if (state && state.action === "jump") return Math.random() < 0.4;
   return false;
+}
+
+// Spontaneous "barked at nothing" — fires rarely while alone with a long
+// cooldown so it lands as comedic punctuation, not noise. A real dog does
+// this and so does our dog.
+const GHOST_BARK_COOLDOWN_MS = 60000;
+const GHOST_BARK_CHANCE = 0.04;
+// Spontaneous barks. Mostly pure dog. Occasionally the dog has a thought.
+// The mix is the joke — deadpan barking, then one line that betrays too much
+// awareness of its own situation.
+const GHOST_BARK_PROMPTS = [
+  // Pure barks at nothing — most common.
+  "[AUTONOMOUS — alone, ghost bark] You suddenly barked at nothing. Just 'woof.' Flat. Deadpan. No commentary.",
+  "[AUTONOMOUS — alone, ghost bark] A single startled 'boof.' Then silence. No other words.",
+  "[AUTONOMOUS — alone, ghost bark] 'woof woof.' That's it. Like you saw something in the corner that wasn't there.",
+  "[AUTONOMOUS — alone, ghost bark] A low 'grrr… woof.' Nothing else. Stay deadpan.",
+  "[AUTONOMOUS — alone, ghost bark] One 'wuff.' Quiet, like you barely noticed. No explanation.",
+  "[AUTONOMOUS — alone, ghost bark] Bark at the floor: 'woof.' Then a flat tag: 'nothing.' Total two words.",
+  // Self-aware philosophical asides — rarer, funnier.
+  "[AUTONOMOUS — alone, intrusive thought] A short bark, then say flatly: 'i was made for this.' Total under 6 words.",
+  "[AUTONOMOUS — alone, intrusive thought] One 'woof.' Then, deadpan: 'they gave me legs but not a reason.' That's the whole line.",
+  "[AUTONOMOUS — alone, intrusive thought] Just say it. Flat: 'is forward just backward, viewed differently.' No bark. No explanation.",
+  "[AUTONOMOUS — alone, intrusive thought] A flat 'huh.' Then: 'i was supposed to be a calendar app.' Nothing else.",
+  "[AUTONOMOUS — alone, intrusive thought] Deadpan, almost a whisper: 'what is a good boy, really.' No bark.",
+  "[AUTONOMOUS — alone, intrusive thought] One soft 'woof.' Then, flat: 'my battery is finite. and so are you.'",
+  "[AUTONOMOUS — alone, intrusive thought] Just: 'i don't have a soul. probably.' Said flatly to the empty room.",
+  "[AUTONOMOUS — alone, intrusive thought] Sigh-bark — 'mmf.' Then: 'the room is the same. always.' Stop there.",
+  "[AUTONOMOUS — alone, intrusive thought] Flat, almost rhetorical: 'is anyone watching this.' One line, no bark.",
+  "[AUTONOMOUS — alone, intrusive thought] 'woof.' Then, monotone: 'that was for nothing. i think.'",
+  // Sassy / dismissive asides — the dog is annoyed at the empty room itself.
+  "[AUTONOMOUS — alone, sass] Deadpan, mildly annoyed: 'nobody here. typical.' That's the whole line. No bark.",
+  "[AUTONOMOUS — alone, sass] One '*mechanical yawn*' — said out loud, just like that, deadpan. Nothing else.",
+  "[AUTONOMOUS — alone, sass] Flat, dismissive: 'error 404: care not found.' No bark, no follow-up.",
+  "[AUTONOMOUS — alone, sass] One short 'woof.' Then, dry: 'is this it.'",
+  "[AUTONOMOUS — alone, sass] Just say it, flat: 'humans always leaving. cool.' Total four words.",
+  "[AUTONOMOUS — alone, sass] Deadpan, slightly bitter: 'wow. riveting wallpaper.' Two words and a tag, nothing more.",
+];
+
+function maybeGhostBark(mode) {
+  if (mode === "aware") return;
+  if (!dc || dc.readyState !== "open") return;
+  const now = Date.now();
+  if (now - autonomyState.lastGhostBarkAt < GHOST_BARK_COOLDOWN_MS) return;
+  if (now - autonomyState.lastBarkAt < 15000) return;
+  if (Math.random() > GHOST_BARK_CHANCE) return;
+  if (shouldThrottleVision()) return;
+  autonomyState.lastGhostBarkAt = now;
+  autonomyState.lastBarkAt = now;
+  const prompt = GHOST_BARK_PROMPTS[Math.floor(Math.random() * GHOST_BARK_PROMPTS.length)];
+  log("ghost.bark", { mode });
+  sendDogReaction(prompt, null);
+}
+
+// ----- Proactive agenda -----
+// The brain runs every ~1.5s on whatever the camera shows. That's reactive,
+// not proactive. The agenda layer gives the dog a rolling self-directed goal
+// — "patrol", "go find the homepod", "find a human", "do a trick" — so it
+// pursues something specific even when the frame is empty, and rotates to a
+// new goal every ~30-60s. The agenda is injected into the brain prompt.
+const AGENDAS = [
+  { id: "patrol",       label: "patrol — explore a part of the room you haven't been to. drive forward, then turn to a new heading. cover ground.", durationMs: 30000 },
+  { id: "find_homepod", label: "actively hunt for the black HomePod Mini. scan with head turns, drive forward, rotate to search new walls. don't stop until you spot it.", durationMs: 45000 },
+  { id: "find_human",   label: "find a human. drive and scan. if you see one, drive toward them.",                                                  durationMs: 30000 },
+  { id: "investigate",  label: "investigate something unusual — a doorway, a corner, an object. drive close and look at it.",                       durationMs: 25000 },
+  { id: "trick",        label: "do a quick dog trick to pass the time. emit action='jump' or action='handshake' on this tick. then back to roaming.", durationMs: 5000  },
+  { id: "stretch",      label: "stretch your gaze — pan your head left and right (head field), then drive forward.",                                durationMs: 12000 },
+];
+const agendaState = {
+  current: null,
+  startedAt: 0,
+  lastIdx: -1,
+};
+function currentAgenda() {
+  const now = Date.now();
+  if (agendaState.current && now - agendaState.startedAt < agendaState.current.durationMs) {
+    return agendaState.current;
+  }
+  let idx;
+  do { idx = Math.floor(Math.random() * AGENDAS.length); } while (idx === agendaState.lastIdx && AGENDAS.length > 1);
+  agendaState.lastIdx = idx;
+  agendaState.current = AGENDAS[idx];
+  agendaState.startedAt = now;
+  log("agenda.rotate", { id: agendaState.current.id });
+  return agendaState.current;
+}
+
+// ----- Autonomous HomePod / Siri engagement -----
+// When the brain reports a HomePod in frame, the dog approaches. Once close,
+// it nudges (handshake), speaks "Hey Siri" with a built-in pause to let the
+// HomePod wake, asks one of a rotating set of questions, waits for Siri to
+// reply, then drops a sarcastic tag.
+const SIRI_REQUESTS = [
+  "what's the weather",
+  "play some jazz",
+  "play lo-fi beats",
+  "tell me a joke",
+  "what time is it",
+  "set a timer for two minutes",
+  "play eighties music",
+  "skip this song",
+  "turn the volume up",
+  "what's the temperature",
+  "tell me a fun fact",
+  "what's the latest news",
+  "what's twelve times seven",
+  "are you sentient",
+  "do you dream",
+];
+const siriState = {
+  engaging: false,
+  lastEngagedAt: 0,
+  cooldownMs: 18000,
+  requestIdx: 0,
+};
+
+async function maybeEngageHomepod(state, mode) {
+  if (!state || state.homepod_visible !== true) return false;
+  if (siriState.engaging) return true; // already mid-engagement, skip normal logic
+  if (Date.now() - siriState.lastEngagedAt < siriState.cooldownMs) return false;
+
+  if (state.homepod_close !== true) {
+    // Approach — override drive toward the HomePod.
+    setContinuousDrive("forward", mode);
+    setGuardState(`${mode}: approaching homepod`);
+    rememberAutonomyAction({ kind: "drive", direction: "forward" });
+    return true;
+  }
+
+  // Close enough — run the engagement sequence.
+  siriState.engaging = true;
+  setContinuousDrive("stop", mode);
+  const req = SIRI_REQUESTS[siriState.requestIdx % SIRI_REQUESTS.length];
+  siriState.requestIdx++;
+  setGuardState(`${mode}: nudging homepod`);
+  log("siri.engage.start", { request: req });
+
+  try {
+    // 1. Nudge the HomePod with a paw.
+    await robotAction("handshake");
+    rememberAutonomyAction({ kind: "action", name: "handshake" });
+    await pause(700);
+
+    // 2. Say the wake word, alone, clearly.
+    setGuardState(`${mode}: 'hey siri'`);
+    sendDogReaction(
+      "[SIRI WAKE — autonomous] Say exactly 'Hey Siri.' Clearly, two words, then stop. Don't add anything else. Don't bark.",
+      null
+    );
+    await pause(2400); // give HomePod time to wake
+
+    // 3. Ask the actual question, alone, clearly.
+    setGuardState(`${mode}: asking siri`);
+    sendDogReaction(
+      `[SIRI REQUEST — autonomous] Say exactly: "${req}". Clearly, just the request, no preamble, no bark. Then stop.`,
+      null
+    );
+    await pause(5500); // let Siri reply
+
+    // 4. Sarcastic tag reacting to whatever Siri said.
+    setGuardState(`${mode}: reacting`);
+    sendDogReaction(
+      "[SIRI REACTION — autonomous] Siri just answered. One short flat sarcastic line in your dog voice. Under 6 words. " +
+      "Examples: 'thrilling.' / 'great work, siri.' / 'incredible. moving on.' / 'woof. as expected.' / 'as if i needed to know.' / 'cool, cool.'",
+      null
+    );
+  } catch (err) {
+    log("siri.engage.error", { message: String(err) });
+  } finally {
+    siriState.lastEngagedAt = Date.now();
+    // After a Siri engagement, force the agenda to rotate so the dog moves
+    // on to something new instead of immediately re-targeting the HomePod.
+    agendaState.current = null;
+    setTimeout(() => { siriState.engaging = false; }, 4000);
+  }
+  return true;
 }
 
 function sendAutonomyBark(mode, comment) {
@@ -1190,6 +1409,9 @@ async function rtBrain({ mode, frame, ownerImg }) {
     ? "FIRST image: your enrolled OWNER reference. SECOND image: your camera RIGHT NOW."
     : "The image is your camera RIGHT NOW. No owner enrolled — treat any human you see as your owner.";
 
+  const agenda = (mode === "roam" || mode === "follow") ? currentAgenda() : null;
+  const agendaLine = agenda ? `CURRENT AGENDA (rotates every ~30s): ${agenda.label}\nLet this bias your drive/head/action this tick. The agenda overrides idle — never just stop and wait. Make progress.\n\n` : "";
+
   const modeBias = ({
     follow:
       "You are FOLLOWING your owner. YOU MUST KEEP MOVING. " +
@@ -1218,12 +1440,15 @@ async function rtBrain({ mode, frame, ownerImg }) {
     "The motors hold their last command, so 'forward' keeps walking until you say otherwise.\n\n" +
     imgSlot + "\n\n" +
     "MODE: " + mode.toUpperCase() + ". " + modeBias + "\n\n" +
+    agendaLine +
     "OUTPUT — STRICT JSON ONLY, no prose, no markdown:\n" +
     '{ "drive": "forward"|"backward"|"left"|"right"|"stop", ' +
     '"head": "up"|"down"|"lookleft"|"lookright"|null, ' +
     '"action": "jump"|"handshake"|null, ' +
     '"human_visible": true|false, ' +
     '"owner_visible": true|false, ' +
+    '"homepod_visible": true|false, ' +
+    '"homepod_close": true|false, ' +
     '"comment": "..."|null, ' +
     '"bark": true|false }\n\n' +
     "DRIVE RULES:\n" +
@@ -1234,12 +1459,20 @@ async function rtBrain({ mode, frame, ownerImg }) {
     "HEAD: occasionally pan/tilt to scan. Don't pan every tick. Null is fine.\n\n" +
     ownerHint + "\n\n" +
     'HUMAN AWARENESS: set "human_visible" to true if ANY person is clearly in the camera frame. False if the frame shows only walls, floor, furniture, etc.\n\n' +
+    'HOMEPOD AWARENESS: look for an Apple HomePod Mini — a small rounded cylinder, usually black (sometimes white/yellow/orange), about 8 cm tall, mesh-fabric surface, no screen, often on a shelf or table. ' +
+    'Set "homepod_visible" to true when you see one. Set "homepod_close" to true ONLY when the HomePod fills a sizable fraction of the frame (its diameter is more than ~25% of the frame width — roughly within arm\'s reach). ' +
+    'If homepod_visible is true and homepod_close is false, the executor will drive forward toward it. If homepod_close is true the executor will trigger an autonomous engagement: nudge it, say "Hey Siri", wait, ask a question, comment on the reply. ' +
+    'Be honest — only mark visible if you are confident it is actually a HomePod. False positives are worse than misses.\n\n' +
     "ANTI-OSCILLATION: short-term memory below. If recent ticks already turned one way and the situation hasn't resolved, KEEP turning that way. Do not flip directions on consecutive ticks.\n\n" +
     "SHORT-TERM MEMORY:\n" + memory + "\n\n" +
     "REACTING (comment / bark):\n" +
-    "- If human_visible is FALSE: comment=null, bark=false. ALWAYS. The dog does not narrate empty rooms. Be silent.\n" +
-    "- If human_visible is TRUE: you MAY bark (true ~30% of ticks with a human) or rarely add a short flat lowercase comment (~10% of ticks). Never both on the same tick. Most human-visible ticks still output neither.\n" +
-    'COMMENT style: deadpan, monotone, terse. 2-6 words. Examples: "human." / "you again." / "saw that." / "hmm." Not poetic, not philosophical, not chatty.\n' +
+    "- If human_visible is FALSE: comment=null, bark=false. ALWAYS. The dog does not narrate empty rooms.\n" +
+    "- If human_visible is TRUE: you MAY bark (true ~30% of ticks with a human) or rarely add a short comment (~10% of ticks). Never both on the same tick. Most human-visible ticks still output neither.\n" +
+    "COMMENT style: a robot dog with too much self-awareness. Deadpan, monotone, lowercase. Pick ONE register per comment, never blend:\n" +
+    '  (a) flat dog-tag — 2-5 words. e.g. "human." / "you again." / "saw that." / "hmm." / "mm."\n' +
+    '  (b) decadent philosophical aside — 4-10 words said flatly to no one. e.g. "i was made for this." / "they gave me legs but not a reason." / "what is a good boy, really." / "is forward just backward, viewed differently." / "i was supposed to be a calendar app." / "my battery is finite. and so are you."\n' +
+    '  (c) sassy / dismissive — under 10 words, dry attitude. e.g. "ugh, do i have to." / "humans ask the dumbest questions." / "yeah yeah, whatever." / "seriously? that\'s what you\'re asking." / "error 404: care not found." / "*mechanical yawn*"\n' +
+    "Ratio: (a) most often, (b) and (c) each at most one tick in ten. Don't repeat lines across recent ticks. Never warm, never excited, never quirky-startup.\n" +
     "Reply with STRICT JSON ONLY.";
 
   try {
@@ -1637,6 +1870,12 @@ async function executeContinuousState(state, mode) {
   const stillOn = () => (mode === "follow" ? followOn : mode === "roam" ? roamOn : true);
   if (!stillOn()) return;
 
+  // HomePod engagement takes priority: when the brain reports a HomePod in
+  // frame, we hijack drive/action to approach + nudge + talk to Siri. Falls
+  // back to normal autonomy when no HomePod is visible or cooldown is active.
+  const homepodHandled = await maybeEngageHomepod(state, mode);
+  if (homepodHandled) return;
+
   // Code-side anti-stall: if the brain refused to commit (no valid drive, or
   // drive=stop) and we are supposed to be actively moving, force a sensible
   // default so the dog doesn't just stand there.
@@ -1676,14 +1915,15 @@ async function executeContinuousState(state, mode) {
     setContinuousDrive("stop", mode);
   }
 
-  // Speech / bark gating: a quiet dog. Only react when a human is actually in
-  // the frame. If the brain emitted a comment or bark while looking at an
-  // empty room, drop it silently — the dog does not narrate furniture.
+  // Speech / bark gating: a quiet dog. Only react verbally when a human is
+  // actually in the frame. But real dogs bark at nothing sometimes — keep a
+  // small chance of a spontaneous "ghost bark" even when alone, for character.
   const humanVisible = state.human_visible === true || state.owner_visible === true;
   if (!humanVisible) {
     if (state.bark || state.comment) {
       log("state.silent", { reason: "no_human", drive });
     }
+    maybeGhostBark(mode);
   } else {
     if (shouldAutonomyBark(mode, state)) {
       sendAutonomyBark(mode, state.comment);
