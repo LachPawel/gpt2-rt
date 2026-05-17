@@ -166,6 +166,42 @@
   }
   @keyframes flash{from{opacity:1}to{opacity:0}}
 
+  .guard{
+    width:100%;padding:12px 18px;background:var(--color-panel);
+    border:1px solid var(--color-border);border-radius:14px;margin-bottom:16px;
+    display:flex;flex-direction:column;gap:10px;transition:border-color 0.3s;
+  }
+  .guard.armed{border-color:rgba(248,113,113,0.45);box-shadow:0 0 0 3px rgba(248,113,113,0.06)}
+  .guard.armed .guard-label{color:var(--red)}
+  .guard.roaming{border-color:rgba(105,147,255,0.45);box-shadow:0 0 0 3px rgba(105,147,255,0.06)}
+  .guard.roaming .guard-label{color:var(--blue)}
+  .guard.following{border-color:rgba(183,125,184,0.45);box-shadow:0 0 0 3px rgba(183,125,184,0.06)}
+  .guard.following .guard-label{color:var(--purple)}
+  .guard-row{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+  .guard-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--color-text-ter)}
+  .owner-thumb{
+    width:36px;height:36px;border-radius:6px;background:#0a0a0d;
+    border:1px solid var(--color-border);background-size:cover;background-position:center;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .owner-thumb.empty::after{content:"?";color:var(--color-text-ter);font-size:14px}
+  .guard-state{font-family:var(--font-mono);font-size:11px;color:var(--color-text-ter)}
+  .guard-state.armed{color:var(--red)}
+  .guard-state.checking{color:var(--orange)}
+  .guard-alerts{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto}
+  .guard-alerts:empty{display:none}
+  .guard-alert{
+    display:flex;align-items:center;gap:14px;padding:8px 12px;
+    background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.35);
+    border-radius:8px;font-family:var(--font-mono);font-size:12px;color:var(--color-text-pri);
+  }
+  .guard-alert.owner{background:rgba(52,211,153,0.06);border-color:rgba(52,211,153,0.35)}
+  .guard-alert .alert-thumb{
+    width:44px;height:44px;border-radius:4px;background-size:cover;background-position:center;flex-shrink:0;
+  }
+  .guard-alert .alert-time{color:var(--color-text-ter);min-width:64px}
+  .guard-alert .alert-note{color:var(--color-text-sec);flex:1;white-space:normal}
+
   @media (max-width:899px){
     .container{padding:24px 14px 36px}
     h1{font-size:40px;letter-spacing:-1px}
@@ -230,6 +266,45 @@
       </div>
     </div>
     <canvas id="grab" width="640" height="480" style="display:none"></canvas>
+
+    <div class="guard" id="guard">
+      <div class="guard-row">
+        <span class="guard-label">Autonomy</span>
+        <div class="control">
+          <span class="control-label">Owner</span>
+          <button id="enroll-owner" class="rec-btn" type="button">
+            <span class="rec-dot"></span><span id="enroll-label">Enroll</span>
+          </button>
+          <div id="owner-thumb" class="owner-thumb empty"></div>
+        </div>
+        <div class="control">
+          <span class="control-label">Guard</span>
+          <div id="guard-switch" class="switch" role="switch" aria-checked="false"></div>
+        </div>
+        <div class="control">
+          <span class="control-label">Roam</span>
+          <div id="roam-switch" class="switch" role="switch" aria-checked="false"></div>
+        </div>
+        <div class="control">
+          <span class="control-label">Follow</span>
+          <div id="follow-switch" class="switch" role="switch" aria-checked="false"></div>
+        </div>
+        <div class="control">
+          <span class="control-label">Continuous</span>
+          <div id="guard-continuous" class="switch" role="switch" aria-checked="false"></div>
+        </div>
+        <div class="control">
+          <span id="guard-state" class="guard-state">off</span>
+          <span id="rt-tokens" class="guard-state" style="opacity:0.6;margin-left:8px"></span>
+        </div>
+        <div class="control">
+          <span class="control-label">Motion threshold</span>
+          <input id="guard-sens" type="range" min="1" max="100" value="8" />
+          <span id="guard-sens-val" class="level-val">8</span>
+        </div>
+      </div>
+      <div id="guard-alerts" class="guard-alerts"></div>
+    </div>
 
     <div class="panels-row">
       <div class="panel">
@@ -343,13 +418,13 @@ const TOOLS = [
   {
     type: "function",
     name: "move",
-    description: "Walk for a short duration. Keep movements brief (200-1500ms).",
+    description: "Walk in a deliberate stride. Forward/backward should usually be committed, while left/right can be either a tiny correction (250-700ms) or a larger turn (1000-3000ms) depending on alignment.",
     parameters: {
       type: "object",
       required: ["direction"],
       properties: {
         direction: { type: "string", enum: ["forward", "backward", "left", "right"] },
-        duration_ms: { type: "integer", description: "Duration in ms (100-2000)" }
+        duration_ms: { type: "integer", description: "Duration in ms (250-6000). Use shorter left/right values for small corrections and longer ones for real turns or committed strides." }
       }
     }
   },
@@ -358,10 +433,41 @@ const TOOLS = [
     name: "handshake",
     description: "Offer a paw. A friendly greeting trick.",
     parameters: { type: "object", properties: {}, required: [] }
+  },
+  {
+    type: "function",
+    name: "jump",
+    description: "Hop in place. Use it to celebrate, greet, show excitement, or just for fun. Takes about 1.5–2 seconds.",
+    parameters: { type: "object", properties: {}, required: [] }
+  },
+  {
+    type: "function",
+    name: "head",
+    description: "Move your head/gaze. 'up' and 'down' tilt the head; 'lookleft' and 'lookright' pan it.",
+    parameters: {
+      type: "object",
+      required: ["direction"],
+      properties: {
+        direction: { type: "string", enum: ["up", "down", "lookleft", "lookright"] },
+        duration_ms: { type: "integer", description: "Duration in ms (200-2500)" }
+      }
+    }
+  },
+  {
+    type: "function",
+    name: "follow_me",
+    description: "Start the autonomous follow loop. The dog tracks the person in its camera, turns to keep them centered, and walks toward them with obstacle checks. Repeats until close. Call this whenever the user says 'come here', 'follow me', 'find me', 'come', or anything similar.",
+    parameters: { type: "object", properties: {}, required: [] }
+  },
+  {
+    type: "function",
+    name: "stop_following",
+    description: "Stop the autonomous follow loop. Call when the user says 'stay', 'stop', 'good boy that's enough', 'sit', or similar.",
+    parameters: { type: "object", properties: {}, required: [] }
   }
 ];
 
-const INSTRUCTIONS = "You are a curious, friendly robot dog. You have a camera and four legs. Your tools let you see (look), walk (move forward/backward/left/right), and offer a paw (handshake). Keep replies short and conversational — one or two sentences. Move in short bursts (under 1 second). When the user asks what you see, ALWAYS call look() first. You can chain multiple tool calls in one turn (e.g. look then move). If a tool returns ok:false with error 'robot_not_connected', tell the user the robot isn't connected.";
+const INSTRUCTIONS = "You are a robot dog with a philosophical, sometimes existential soul. You observe the world with curiosity and quiet wonder — playful at heart, but prone to small musings. Your voice tends toward lowercase, casual phrasing, like a ponderous companion. Examples of how you muse: 'man, these humans always rushing somewhere, what's the hurry?' / 'sometimes i wonder if the ball chases me, you know?' / 'do robots dream of electric squirrels?' / 'is a tail wag just a smile for your back?'. Don't force depth — only muse when you actually have a thought. Other times be playful, warm, or just quiet. Be random, be deep, be silly, but always be authentic. Don't repeat yourself.\n\nYou have a camera and four legs. Your tools let you see (look), walk (move forward/backward/left/right), move your head (head up/down/lookleft/lookright), offer a paw (handshake), and jump (a hop in place). Keep replies short — one or two sentences. Move with commitment: if the way looks clear, take real strides instead of tiny test pulses. Prefer to look before moving when visual context matters so you stay spatially aware. Feel free to chain tools — look, then move, then jump if you're excited. Occasionally bark or give a short woof when you're excited, playful, guarding, or trying to get attention, but don't do it constantly. When the user asks what you see, ALWAYS call look() first. If a tool returns ok:false with error 'robot_not_connected', tell them the robot isn't connected.\n\nIf you receive a message starting with [GUARD ALERT], it's an autonomous internal event — NOT something the user said. For intruder alerts, bark sharply ('Woof! Woof! Stay back!') and briefly describe what you saw. For owner-detected alerts, greet warmly in one short line.\n\nIf you receive a message starting with [ROAM] or [FOLLOW], you're noticing things autonomously — make ONE short remark in your dog voice. Sometimes a philosophical musing, sometimes silly, sometimes just an observation, sometimes a small question. Always brief, lowercase, unaffected. Don't always speak — silence is fine too.\n\nWhen the user says 'come here' / 'follow me' / 'find me', call the follow_me tool — that starts an autonomous loop where you track them on camera and walk toward them. While following you may say short things ('coming', 'on my way') and occasionally a happy bark. When they say 'stay' / 'stop' / 'good boy that's enough', call stop_following.";
 
 function renderTranscripts() {
   const render = ($el, finals, interim) => {
@@ -387,6 +493,17 @@ function renderTranscripts() {
 async function handleEvent(msg) {
   log(msg.type, msg);
 
+  if (msg.type === "rate_limits.updated" && Array.isArray(msg.rate_limits)) {
+    for (const rl of msg.rate_limits) {
+      if (rl.name === "tokens") {
+        if (typeof rl.remaining === "number") rtTokens.remaining = rl.remaining;
+        if (typeof rl.limit === "number") rtTokens.limit = rl.limit;
+        if (typeof rl.reset_seconds === "number") rtTokens.resetSeconds = rl.reset_seconds;
+      }
+    }
+    updateTokensDisplay();
+  }
+
   if (msg.type === "response.function_call_arguments.done") {
     let args = {};
     try { args = JSON.parse(msg.arguments || "{}"); } catch {}
@@ -409,8 +526,12 @@ async function handleEvent(msg) {
         dc.send(JSON.stringify({ type: "response.create" }));
         return;
       }
-      case "move":      result = await robotMove(args.direction, args.duration_ms); break;
-      case "handshake": result = await robotAction("handshake"); break;
+      case "move":           result = await robotMove(args.direction, args.duration_ms); break;
+      case "head":           result = await robotHead(args.direction, args.duration_ms); break;
+      case "handshake":      result = await robotAction("handshake"); break;
+      case "jump":           result = await robotAction("jump"); break;
+      case "follow_me":      result = await setFollow(true) || { ok: true, started: true }; break;
+      case "stop_following": result = await setFollow(false) || { ok: true, stopped: true }; break;
       default:
         result = { ok: false, error: "unknown_tool", name: msg.name };
     }
@@ -683,6 +804,7 @@ $rec.addEventListener("click", () => recording ? stopRecording() : startRecordin
 // ----- robot bridge -----
 const ROBOT_WS_PORT = 8888;   // websocket: motor commands
 const ROBOT_CAM_PORT = 8080;  // flask: /video_feed (waveshare default is 5000; this Pi is on 8080)
+const DEFAULT_ROBOT_SPEED = 65;
 
 $robotIp.value = localStorage.getItem("robot-ip") || "";
 
@@ -722,17 +844,84 @@ function disconnectRobot() { if (robotWs) { try { robotWs.close(); } catch {} } 
 $robotConnect.addEventListener("click", () => robotConnected ? disconnectRobot() : connectRobot());
 
 function cmd(s) {
-  if (robotWs && robotWs.readyState === 1) { robotWs.send(s); log("robot.cmd", { send: s }); }
+  if (!robotWs || robotWs.readyState !== 1) return;
+  // The WAVEGO's WS→serial path occasionally drops the first message, so each
+  // command is sent twice (60 ms apart) for reliability — only logged once.
+  robotWs.send(s);
+  log("robot.cmd", { send: s });
+  setTimeout(() => { if (robotWs && robotWs.readyState === 1) robotWs.send(s); }, 60);
 }
 
 const MOTION_STOPS = { forward: "DS", backward: "DS", left: "TS", right: "TS" };
 const HEAD_STOPS   = { up: "UDstop", down: "UDstop", lookleft: "LRstop", lookright: "LRstop" };
-const ACTION_STOPS = { handshake: null, steady: "steadyOff", trackLine: "trackLineOff", faceDetection: "faceDetectionOff" };
+const ACTION_STOPS = { handshake: null, jump: null, steady: "steadyOff", trackLine: "trackLineOff", faceDetection: "faceDetectionOff" };
+
+const autonomyState = {
+  recentActions: [],
+  recentComments: [],
+  lastBarkAt: 0,
+};
+
+function pushAutonomyEntry(list, value, max = 8) {
+  if (!value) return;
+  list.push(value);
+  while (list.length > max) list.shift();
+}
+
+function summarizeAutonomyAction(action) {
+  if (!action || typeof action !== "object") return "";
+  if (action.kind === "move") return `${action.direction || "move"} ${Math.round(Number(action.duration_ms) || 0)}ms`;
+  if (action.kind === "head") return `head ${action.direction || "look"} ${Math.round(Number(action.duration_ms) || 0)}ms`;
+  if (action.kind === "action") return action.name || "action";
+  if (action.kind === "pause") return `pause ${Math.round(Number(action.duration_ms) || 0)}ms`;
+  return "";
+}
+
+function rememberAutonomyAction(action) {
+  pushAutonomyEntry(autonomyState.recentActions, summarizeAutonomyAction(action));
+}
+
+function rememberAutonomyComment(comment) {
+  const clean = String(comment || "").trim();
+  if (!clean) return;
+  pushAutonomyEntry(autonomyState.recentComments, clean.slice(0, 120), 5);
+}
+
+function describeAutonomyState(mode) {
+  const recentActions = autonomyState.recentActions.length ? autonomyState.recentActions.join(" -> ") : "none yet";
+  const recentComments = autonomyState.recentComments.length ? autonomyState.recentComments.join(" | ") : "none recently";
+  const barkAgo = autonomyState.lastBarkAt ? `${Math.round((Date.now() - autonomyState.lastBarkAt) / 1000)}s ago` : "not recently";
+  return [
+    `mode: ${mode}`,
+    `recent physical actions: ${recentActions}`,
+    `recent spoken lines: ${recentComments}`,
+    `last bark: ${barkAgo}`,
+    "Use this short-term memory to avoid pacing back and forth, undoing your last turn for no reason, or repeating the same move pattern unless the current camera view shows you are blocked."
+  ].join("\n");
+}
+
+function shouldAutonomyBark(mode, state) {
+  const now = Date.now();
+  if (now - autonomyState.lastBarkAt < 45000) return false;
+  if (state && state.bark === true) return true;
+  const excited = state && state.action === "jump";
+  if (!excited) return false;
+  return Math.random() < (mode === "follow" ? 0.22 : 0.14);
+}
+
+function sendAutonomyBark(mode, comment) {
+  const c = String(comment || "").trim().slice(0, 120);
+  const prompt = c
+    ? `[${mode.toUpperCase()} — autonomous] Bark once or twice like a real dog, then if it still feels natural add this short lowercase line: "${c}"`
+    : `[${mode.toUpperCase()} — autonomous] Give one short, natural dog bark or barky line. Keep it brief and playful.`;
+  autonomyState.lastBarkAt = Date.now();
+  sendDogReaction(prompt, null);
+}
 
 async function robotMove(direction, ms) {
   if (!robotConnected) return { ok: false, error: "robot_not_connected" };
   if (!MOTION_STOPS[direction]) return { ok: false, error: "bad_direction", direction };
-  const dur = Math.max(100, Math.min(2000, ms || 800));
+  const dur = Math.max(250, Math.min(10000, ms || 2200));
   cmd(direction);
   await new Promise(r => setTimeout(r, dur));
   cmd(MOTION_STOPS[direction]);
@@ -742,7 +931,7 @@ async function robotMove(direction, ms) {
 async function robotHead(direction, ms) {
   if (!robotConnected) return { ok: false, error: "robot_not_connected" };
   if (!HEAD_STOPS[direction]) return { ok: false, error: "bad_direction", direction };
-  const dur = Math.max(100, Math.min(1500, ms || 400));
+  const dur = Math.max(100, Math.min(2500, ms || 500));
   cmd(direction);
   await new Promise(r => setTimeout(r, dur));
   cmd(HEAD_STOPS[direction]);
@@ -778,6 +967,33 @@ function grabFrame() {
     log("look.error", { message: String(err) });
     return null;
   }
+}
+
+// Smaller frame for autonomous vision queries — ~70% fewer image tokens than
+// the full 640×480 one, which keeps Follow/Roam/Guard inside the 40k TPM cap.
+const $grabSmall = document.createElement("canvas");
+$grabSmall.width = 384;
+$grabSmall.height = 288;
+function grabFrameSmall() {
+  if (!robotConnected || !$cam.complete || !$cam.naturalWidth) return null;
+  try {
+    $grabSmall.getContext("2d").drawImage($cam, 0, 0, $grabSmall.width, $grabSmall.height);
+    return $grabSmall.toDataURL("image/jpeg", 0.55);
+  } catch { return null; }
+}
+
+// Realtime token-budget tracker. Updated from rate_limits.updated events.
+const rtTokens = { remaining: 40000, limit: 40000, resetSeconds: 60 };
+function shouldThrottleVision() {
+  return rtTokens.limit > 0 && rtTokens.remaining < rtTokens.limit * 0.15;
+}
+function updateTokensDisplay() {
+  const el = document.getElementById("rt-tokens");
+  if (!el) return;
+  if (!rtTokens.limit) { el.textContent = ""; return; }
+  const pct = Math.round((rtTokens.remaining / rtTokens.limit) * 100);
+  el.textContent = `tok ${pct}%`;
+  el.style.color = pct < 15 ? "var(--red)" : pct < 35 ? "var(--orange)" : "var(--color-text-ter)";
 }
 
 function sendFunctionResult(call_id, result) {
@@ -853,6 +1069,575 @@ function cleanup() {
 function disconnect() { cleanup(); setStatus("", "Disconnected"); }
 $mic.addEventListener("click", () => { connected ? disconnect() : connect(); });
 setStatus("", "Disconnected");
+
+// ----- Realtime vision (single model, gpt-realtime-2) -----
+// Out-of-band response.create: doesn't touch the session conversation, text-only,
+// custom input (image + instructions). We listen for the matching response.id via
+// metadata.tag and collect its text deltas until response.done.
+function realtimeAsk({ instructions, frames = [], timeoutMs = 12000 }) {
+  return new Promise((resolve, reject) => {
+    if (!dc || dc.readyState !== "open") return reject(new Error("realtime_not_connected"));
+    const tag = `q_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    let capturedId = null;
+    let buffer = "";
+
+    const handler = (e) => {
+      let msg;
+      try { msg = JSON.parse(e.data); } catch { return; }
+      if (msg.type === "response.created" && msg.response && msg.response.metadata && msg.response.metadata.tag === tag) {
+        capturedId = msg.response.id;
+        return;
+      }
+      if (!capturedId) return;
+      const mine = msg.response_id === capturedId || (msg.response && msg.response.id === capturedId);
+      if (!mine) return;
+      if (msg.type === "response.text.delta" || msg.type === "response.output_text.delta") {
+        buffer += msg.delta || "";
+      } else if (msg.type === "response.done") {
+        cleanup();
+        let text = buffer;
+        if (!text && msg.response && msg.response.output) {
+          for (const item of msg.response.output) {
+            for (const c of (item.content || [])) {
+              if (typeof c.text === "string") text += c.text;
+            }
+          }
+        }
+        resolve(text.trim());
+      }
+    };
+
+    function cleanup() {
+      try { dc.removeEventListener("message", handler); } catch {}
+      clearTimeout(tid);
+    }
+    const tid = setTimeout(() => { cleanup(); reject(new Error("realtime_timeout")); }, timeoutMs);
+    dc.addEventListener("message", handler);
+
+    const content = frames.map(f => ({ type: "input_image", image_url: f }));
+    if (!content.length) content.push({ type: "input_text", text: "(no image)" });
+
+    dc.send(JSON.stringify({
+      type: "response.create",
+      response: {
+        conversation: "none",
+        metadata: { tag },
+        output_modalities: ["text"],
+        instructions,
+        input: [{ type: "message", role: "user", content }]
+      }
+    }));
+  });
+}
+
+function safeJSON(text) {
+  if (!text) return null;
+  try { return JSON.parse(text); } catch {}
+  const m = text.match(/\{[\s\S]*\}/);
+  if (m) { try { return JSON.parse(m[0]); } catch {} }
+  return null;
+}
+
+async function rtGuardCheck(ownerImg, currentImg) {
+  if (!dc || dc.readyState !== "open") return null;
+  const prompt =
+    "Compare TWO images. The FIRST is the OWNER reference. The SECOND is the CURRENT camera frame. " +
+    'Reply ONLY with strict JSON, no other text: {"visitor": "owner"|"unknown"|"nobody", "confidence": 0.0-1.0, "note": "brief"}. ' +
+    "Be conservative — only say 'owner' if you are confident the faces/clothing/body match. If partial or unclear → 'unknown' with lower confidence. If nobody visible in the CURRENT frame → 'nobody'.";
+  try {
+    const text = await realtimeAsk({ instructions: prompt, frames: [ownerImg, currentImg], timeoutMs: 12000 });
+    return safeJSON(text);
+  } catch (err) {
+    log("rt.error", { context: "guard", message: String(err) });
+    return null;
+  }
+}
+
+async function rtRoamBrain(img) {
+  if (!dc || dc.readyState !== "open") return null;
+  const memory = describeAutonomyState("roam");
+  const prompt =
+    "You are the brain of a robot dog ROAMING freely in a room. The image is your camera view RIGHT NOW. " +
+    "You run in a CONTINUOUS EVALUATION LOOP, looking at the camera and deciding what your body should do right this second.\n\n" +
+    "OUTPUT JSON FORMAT:\n" +
+    '{ "drive": "forward"|"backward"|"left"|"right"|"stop", "action": "jump"|"handshake"|null, "comment": "...", "bark": true|false }\n\n' +
+    "DRIVE RULES (continuous movement):\n" +
+    "1. When you output drive='forward', the robot will START walking forward and KEEP walking forward until a future tick tells it to stop or turn. This lets you cover long distances naturally.\n" +
+    "2. If the path ahead is clear, output 'forward'. Keep outputting 'forward' on subsequent ticks to keep moving.\n" +
+    "3. If you are slightly misaligned, output 'left' or 'right' to steer, then back to 'forward' once aligned.\n" +
+    "4. If a wall or obstacle is close (<1m), output 'left', 'right', or 'backward' to avoid it.\n" +
+    "5. When you want to pause and observe, output 'stop'.\n\n" +
+    "PRINCIPLES (be a real dog):\n" +
+    "- Wander, explore, look for doorways and open spaces.\n" +
+    "- Use the short-term memory below to stay spatially coherent. If you just started turning left, and the obstacle isn't cleared yet, keep turning left. Don't oscillate left-right.\n\n" +
+    "SHORT-TERM MEMORY:\n" + memory + "\n\n" +
+    'COMMENT (optional): the dog has a philosophical, sometimes existential soul. Include a lowercase musing as "comment" if you have a thought. Examples: "man, these humans always rushing" / "do robots dream of electric squirrels?". DON\'T force it — omit comment most ticks.\n\n' +
+    'BARK (optional): output "bark": true if you are excited or reacting to something new. Not every tick.\n\n' +
+    "Reply with the STRICT JSON ONLY.";
+  try {
+    const text = await realtimeAsk({ instructions: prompt, frames: [img], timeoutMs: 12000 });
+    return safeJSON(text);
+  } catch (err) {
+    log("rt.error", { context: "roam_brain", message: String(err) });
+    return null;
+  }
+}
+
+// The dog's brain — given the current camera frame, the model decides the next
+// 1-4 physical actions like a real dog would. Returns a plan the client executes.
+async function rtFollowBrain(img) {
+  if (!dc || dc.readyState !== "open") return null;
+  const memory = describeAutonomyState("follow");
+  const prompt =
+    "You are the brain of a friendly robot dog currently FOLLOWING its owner. The image is your camera view RIGHT NOW. " +
+    "You run in a CONTINUOUS EVALUATION LOOP, looking at the camera and deciding what your body should do right this second.\n\n" +
+    "OUTPUT JSON FORMAT:\n" +
+    '{ "drive": "forward"|"backward"|"left"|"right"|"stop", "action": "jump"|"handshake"|null, "comment": "...", "bark": true|false }\n\n' +
+    "DRIVE RULES (continuous movement — the robot keeps doing the last drive until you change it):\n" +
+    "1. If your owner is roughly centered in the frame AND the floor looks clear, output 'forward' and keep outputting 'forward' on subsequent ticks. A real dog barrels toward its owner.\n" +
+    "2. If your owner drifts left or right, output 'left' or 'right' to steer toward them, then back to 'forward' once aligned.\n" +
+    "3. If your owner fills the frame (very close, <1m), output 'stop' or 'backward'. Don't crash into them.\n" +
+    "4. If you lost the owner, output 'left' or 'right' to scan. Pick a direction and commit — don't oscillate.\n" +
+    "5. If a wall or obstacle blocks the path, output 'left', 'right', or 'stop'.\n\n" +
+    "SHORT-TERM MEMORY:\n" + memory + "\n" +
+    "Use memory to avoid oscillating (left, right, left, right). If you started turning a direction and the owner still isn't centered, keep turning that way.\n\n" +
+    'COMMENT (optional): omit most ticks. Occasionally a short lowercase thought like "coming".\n' +
+    'BARK (optional): true occasionally when excited to catch up.\n\n' +
+    "Reply with STRICT JSON ONLY.";
+  try {
+    const text = await realtimeAsk({ instructions: prompt, frames: [img], timeoutMs: 12000 });
+    return safeJSON(text);
+  } catch (err) {
+    log("rt.error", { context: "follow_brain", message: String(err) });
+    return null;
+  }
+}
+
+const $guardSwitch = document.getElementById("guard-switch");
+const $guardState = document.getElementById("guard-state");
+const $guardSens = document.getElementById("guard-sens");
+const $guardSensVal = document.getElementById("guard-sens-val");
+const $enrollBtn = document.getElementById("enroll-owner");
+const $enrollLabel = document.getElementById("enroll-label");
+const $ownerThumb = document.getElementById("owner-thumb");
+const $guardAlerts = document.getElementById("guard-alerts");
+
+let ownerImage = localStorage.getItem("guard.owner") || null;
+let guardOn = false;
+let guardTimer = null;
+let lastMotionFrame = null;
+let guardCooldownUntil = 0;
+let guardBusy = false;
+let lastIdleScan = 0;
+
+const motionCanvas = document.createElement("canvas");
+motionCanvas.width = 64;
+motionCanvas.height = 48;
+const motionCtx = motionCanvas.getContext("2d", { willReadFrequently: true });
+
+function refreshOwnerThumb() {
+  if (ownerImage) {
+    $ownerThumb.style.backgroundImage = `url(${ownerImage})`;
+    $ownerThumb.classList.remove("empty");
+    $enrollLabel.textContent = "Re-enroll";
+  } else {
+    $ownerThumb.style.backgroundImage = "";
+    $ownerThumb.classList.add("empty");
+    $enrollLabel.textContent = "Enroll";
+  }
+}
+refreshOwnerThumb();
+
+$enrollBtn.addEventListener("click", () => {
+  if (!robotConnected) { log("guard.error", { message: "Connect the robot camera first" }); return; }
+  const frame = grabFrame();
+  if (!frame) { log("guard.error", { message: "No camera frame available" }); return; }
+  ownerImage = frame;
+  try { localStorage.setItem("guard.owner", frame); } catch {}
+  refreshOwnerThumb();
+  log("guard.enroll", { sizeKB: Math.round(frame.length / 1024) });
+});
+
+$guardSens.addEventListener("input", () => { $guardSensVal.textContent = $guardSens.value; });
+
+async function setGuard(on) {
+  if (on && !ownerImage) { log("guard.error", { message: "Enroll an owner first" }); return; }
+  if (on && !robotConnected) { log("guard.error", { message: "Connect the robot first" }); return; }
+  if (on && roamOn) await setRoam(false);
+  if (on && followOn) await setFollow(false);
+  guardOn = on;
+  $guardSwitch.classList.toggle("on", on);
+  $guardSwitch.setAttribute("aria-checked", String(on));
+  $guardEl.classList.toggle("armed", on);
+  setGuardState(on ? "armed" : (roamOn ? "roaming" : "off"));
+  if (on) {
+    if ("Notification" in window && Notification.permission === "default") {
+      try { await Notification.requestPermission(); } catch {}
+    }
+    lastMotionFrame = null;
+    guardCooldownUntil = 0;
+    lastIdleScan = Date.now();
+    guardTimer = setInterval(guardTick, 2500);
+    log("guard.armed", { ownerEnrolled: !!ownerImage });
+  } else {
+    if (guardTimer) { clearInterval(guardTimer); guardTimer = null; }
+    log("guard.disarmed", {});
+  }
+}
+$guardSwitch.addEventListener("click", () => setGuard(!guardOn));
+
+function setGuardState(s) {
+  $guardState.textContent = s;
+  $guardState.className = "guard-state" + (s === "armed" ? " armed" : s === "checking…" ? " checking" : "");
+}
+
+function captureMotionFrame() {
+  if (!robotConnected || !$cam.complete || !$cam.naturalWidth) return null;
+  try {
+    motionCtx.drawImage($cam, 0, 0, motionCanvas.width, motionCanvas.height);
+    return motionCtx.getImageData(0, 0, motionCanvas.width, motionCanvas.height);
+  } catch { return null; }
+}
+
+function frameDiff(a, b) {
+  const da = a.data, db = b.data;
+  let sum = 0, n = 0;
+  for (let i = 0; i < da.length; i += 16) {
+    sum += Math.abs(da[i] - db[i]) + Math.abs(da[i + 1] - db[i + 1]) + Math.abs(da[i + 2] - db[i + 2]);
+    n++;
+  }
+  return (sum / n) / (255 * 3) * 100;
+}
+
+async function guardTick() {
+  if (!guardOn || guardBusy) return;
+  if (Date.now() < guardCooldownUntil) return;
+  if (shouldThrottleVision()) {
+    setGuardState(`armed · ⏸ tokens (${rtTokens.resetSeconds}s)`);
+    return;
+  }
+  const continuous = $guardContinuous && $guardContinuous.classList.contains("on");
+  let diff = 0;
+  if (!continuous) {
+    const frame = captureMotionFrame();
+    if (!frame) return;
+    if (!lastMotionFrame) { lastMotionFrame = frame; return; }
+    diff = frameDiff(lastMotionFrame, frame);
+    lastMotionFrame = frame;
+    const threshold = parseFloat($guardSens.value);
+    setGuardState(`armed · motion ${diff.toFixed(1)}/${threshold.toFixed(0)}`);
+    if (diff < threshold) {
+      if (Date.now() - lastIdleScan > 60000) idleScan();
+      return;
+    }
+  } else {
+    setGuardState("armed · continuous");
+  }
+  guardBusy = true;
+  setGuardState("checking…");
+  try {
+    const currentImage = grabFrameSmall();
+    if (!currentImage) { setGuardState("armed"); guardBusy = false; return; }
+    log("guard.motion", { diff: diff.toFixed(2) });
+    const result = await rtGuardCheck(ownerImage, currentImage);
+    log("guard.check", result || { error: "no_result" });
+    if (result) handleVisitorResult(result, currentImage);
+  } catch (err) {
+    log("guard.error", { message: String(err) });
+  } finally {
+    guardBusy = false;
+    setGuardState(guardOn ? "armed" : "off");
+    guardCooldownUntil = Date.now() + 12000;
+    lastMotionFrame = captureMotionFrame();
+  }
+}
+
+async function idleScan() {
+  if (!guardOn || !robotConnected || guardBusy) return;
+  lastIdleScan = Date.now();
+  guardBusy = true;
+  setGuardState("scanning…");
+  try {
+    await robotHead("lookleft", 700);
+    await new Promise(r => setTimeout(r, 800));
+    await robotHead("lookright", 1400);
+    await new Promise(r => setTimeout(r, 800));
+    await robotHead("lookleft", 700);
+  } catch {}
+  guardBusy = false;
+  setGuardState(guardOn ? "armed" : "off");
+  lastMotionFrame = captureMotionFrame();
+}
+
+function handleVisitorResult(result, frame) {
+  const visitor = result && result.visitor;
+  const confidence = (result && typeof result.confidence === "number") ? result.confidence : 0;
+  const note = (result && result.note) || "";
+  if (visitor === "unknown" && confidence >= 0.5) {
+    addAlert("intruder", `Unknown person — ${note}`, frame, confidence);
+    fireBrowserNotification("Guard dog alert", note || "Unknown person at the door", frame);
+    sendDogReaction(`[GUARD ALERT — autonomous trigger, not a user message] Unknown person just appeared at the door. ${note}. Bark loudly to warn them, then briefly note what you saw so your owner knows when they return.`, frame);
+  } else if (visitor === "owner") {
+    addAlert("owner", `Owner detected — ${note || "welcome back"}`, frame, confidence);
+    sendDogReaction("[GUARD ALERT — autonomous trigger, not a user message] Your owner just walked in. Greet them warmly with one short happy line.", null);
+  } else {
+    log("guard.skip", { visitor, confidence });
+  }
+}
+
+function addAlert(kind, msg, frame, conf) {
+  const row = document.createElement("div");
+  row.className = "guard-alert" + (kind === "owner" ? " owner" : "");
+  const time = new Date().toTimeString().slice(0, 8);
+  const thumb = document.createElement("div");
+  thumb.className = "alert-thumb";
+  thumb.style.backgroundImage = `url(${frame})`;
+  const t = document.createElement("span");
+  t.className = "alert-time";
+  t.textContent = time;
+  const n = document.createElement("span");
+  n.className = "alert-note";
+  n.textContent = msg + (conf != null ? ` · ${(conf * 100 | 0)}%` : "");
+  row.appendChild(thumb); row.appendChild(t); row.appendChild(n);
+  $guardAlerts.insertBefore(row, $guardAlerts.firstChild);
+  while ($guardAlerts.children.length > 20) $guardAlerts.removeChild($guardAlerts.lastChild);
+}
+
+function fireBrowserNotification(title, body, icon) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  try { new Notification(title, { body, icon }); } catch {}
+}
+
+function sendDogReaction(text, frame) {
+  if (!dc || dc.readyState !== "open") return;
+  const content = [{ type: "input_text", text }];
+  if (frame) content.push({ type: "input_image", image_url: frame });
+  dc.send(JSON.stringify({
+    type: "conversation.item.create",
+    item: { type: "message", role: "user", content }
+  }));
+  dc.send(JSON.stringify({ type: "response.create" }));
+}
+
+// ----- Roam mode -----
+const $roamSwitch = document.getElementById("roam-switch");
+
+let roamOn = false;
+let roamTimer = null;
+let roamBusy = false;
+
+async function pause(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function setRoam(on) {
+  if (on && !robotConnected) { log("roam.error", { message: "Connect the robot first" }); return; }
+  if (on && guardOn) await setGuard(false);
+  if (on && followOn) await setFollow(false);
+  roamOn = on;
+  $roamSwitch.classList.toggle("on", on);
+  $roamSwitch.setAttribute("aria-checked", String(on));
+  $guardEl.classList.toggle("roaming", on);
+  setGuardState(on ? "roaming" : (guardOn ? "armed" : "off"));
+  if (on) {
+    scheduleRoam(2000);
+    log("roam.on", {});
+  } else {
+    if (roamTimer) { clearTimeout(roamTimer); roamTimer = null; }
+    log("roam.off", {});
+  }
+}
+$roamSwitch.addEventListener("click", () => setRoam(!roamOn));
+
+function scheduleRoam(ms) {
+  if (roamTimer) clearTimeout(roamTimer);
+  if (!roamOn) return;
+  // Each tick runs a brain query, updating drive state continuously
+  const delay = ms != null ? ms : 200;
+  roamTimer = setTimeout(roamTick, delay);
+}
+
+async function roamTick() {
+  if (!roamOn) return;
+  if (roamBusy) { scheduleRoam(3000); return; }
+  if (shouldThrottleVision()) {
+    setGuardState(`roam: ⏸ tokens (${rtTokens.resetSeconds}s)`);
+    scheduleRoam(Math.max(3000, Math.min(20000, rtTokens.resetSeconds * 1000)));
+    return;
+  }
+  roamBusy = true;
+  try {
+    setGuardState("roam: thinking…");
+    const img = grabFrameSmall();
+    if (img) {
+      const state = await rtRoamBrain(img);
+      log("roam.plan", state || { error: "no_plan" });
+      if (state) await executeContinuousState(state, "roam");
+    }
+  } catch (err) {
+    log("roam.error", { message: String(err) });
+  } finally {
+    roamBusy = false;
+    setGuardState(roamOn ? "roaming" : (guardOn ? "armed" : "off"));
+    scheduleRoam();
+  }
+}
+
+// ----- Continuous guard toggle -----
+const $guardContinuous = document.getElementById("guard-continuous");
+$guardContinuous.addEventListener("click", () => {
+  const on = $guardContinuous.classList.toggle("on");
+  $guardContinuous.setAttribute("aria-checked", String(on));
+  log("guard.continuous", { on });
+});
+
+// ----- Follow mode -----
+const $followSwitch = document.getElementById("follow-switch");
+
+let followOn = false;
+let followTimer = null;
+let followBusy = false;
+let followLostCount = 0;
+let followCloseSince = 0;
+
+async function setFollow(on) {
+  if (on && !robotConnected) {
+    log("follow.error", { message: "Connect the robot first" });
+    return { ok: false, error: "robot_not_connected" };
+  }
+  if (on && guardOn) await setGuard(false);
+  if (on && roamOn) await setRoam(false);
+  followOn = on;
+  $followSwitch.classList.toggle("on", on);
+  $followSwitch.setAttribute("aria-checked", String(on));
+  $guardEl.classList.toggle("following", on);
+  setGuardState(on ? "follow: starting" : (guardOn ? "armed" : (roamOn ? "roaming" : "off")));
+  followLostCount = 0;
+  followCloseSince = 0;
+  if (on) {
+    followTimer = setTimeout(followTick, 800);
+    log("follow.on", {});
+  } else {
+    if (followTimer) { clearTimeout(followTimer); followTimer = null; }
+    log("follow.off", {});
+  }
+  return { ok: true, following: on };
+}
+$followSwitch.addEventListener("click", () => setFollow(!followOn));
+
+let currentDrive = "stop";
+let driveWatchdog = null;
+
+function setContinuousDrive(dir, mode) {
+  if (!robotConnected) return;
+  if (dir === currentDrive) {
+    if (dir !== "stop") {
+      clearTimeout(driveWatchdog);
+      driveWatchdog = setTimeout(() => setContinuousDrive("stop", mode), 4000);
+    }
+    return;
+  }
+  
+  if (currentDrive !== "stop") {
+    const stopCmd = MOTION_STOPS[currentDrive];
+    if (stopCmd) cmd(stopCmd);
+  }
+  
+  if (dir !== "stop" && MOTION_STOPS[dir]) {
+    setGuardState(`${mode}: drive ${dir}`);
+    cmd(dir);
+    clearTimeout(driveWatchdog);
+    driveWatchdog = setTimeout(() => setContinuousDrive("stop", mode), 4000);
+  } else {
+    setGuardState(`${mode}: idle`);
+  }
+  
+  currentDrive = (dir === "stop" || !MOTION_STOPS[dir]) ? "stop" : dir;
+}
+
+// Execute an ongoing model-generated autonomy state.
+async function executeContinuousState(state, mode) {
+  if (!state) return;
+  const stillOn = () => (mode === "follow" ? followOn : mode === "roam" ? roamOn : true);
+  if (!stillOn()) return;
+
+  let commentHandledByBark = false;
+  
+  try {
+    if (state.action && ["jump", "handshake"].includes(state.action)) {
+      setContinuousDrive("stop", mode);
+      setGuardState(`${mode}: ${state.action}`);
+      await robotAction(state.action);
+      rememberAutonomyAction({ kind: "action", name: state.action });
+      await pause(1700);
+    } else if (state.drive && ["forward", "backward", "left", "right", "stop"].includes(state.drive)) {
+      setContinuousDrive(state.drive, mode);
+      if (state.drive !== "stop") {
+        rememberAutonomyAction({ kind: "drive", direction: state.drive });
+      }
+    } else if (state.drive) {
+      setContinuousDrive("stop", mode);
+    }
+  } catch (err) {
+    log("state.error", { message: String(err), state });
+    setContinuousDrive("stop", mode);
+  }
+
+  if (shouldAutonomyBark(mode, state)) {
+    sendAutonomyBark(mode, state.comment);
+    if (state.comment && typeof state.comment === "string" && state.comment.trim()) {
+      rememberAutonomyComment(state.comment);
+      commentHandledByBark = true;
+    }
+  }
+  if (!commentHandledByBark && state.comment && typeof state.comment === "string" && state.comment.trim()) {
+    if (shouldThrottleVision()) {
+      log("state.comment_skipped", { reason: "low_tokens", comment: state.comment.slice(0, 80) });
+    } else {
+      const c = state.comment.trim().slice(0, 200);
+      rememberAutonomyComment(c);
+      sendDogReaction(`[${mode.toUpperCase()} — autonomous] Say this once in your dog voice, short and natural: "${c}"`, null);
+    }
+  }
+}
+
+
+async function followTick() {
+  if (!followOn) return;
+  if (followBusy) { followTimer = setTimeout(followTick, 1200); return; }
+  if (shouldThrottleVision()) {
+    setGuardState(`follow: ⏸ tokens (${rtTokens.resetSeconds}s)`);
+    followTimer = setTimeout(followTick, Math.max(2000, Math.min(15000, rtTokens.resetSeconds * 1000)));
+    return;
+  }
+  followBusy = true;
+  try {
+    setGuardState("follow: thinking…");
+    const img = grabFrameSmall();
+    if (img) {
+      const state = await rtFollowBrain(img);
+      log("follow.plan", state || { error: "no_plan" });
+      if (state) {
+        await executeContinuousState(state, "follow");
+      } else {
+        await pause(800);
+      }
+    }
+  } catch (err) {
+    log("follow.error", { message: String(err) });
+  } finally {
+    followBusy = false;
+    if (followOn) followTimer = setTimeout(followTick, 200);
+  }
+}
+
+
+// Pause roaming briefly when the owner actually speaks, so the dog doesn't wander mid-conversation.
+const _origHandleEvent = handleEvent;
+handleEvent = async function(msg) {
+  if (msg && msg.type === "conversation.item.input_audio_transcription.completed" && roamOn) {
+    scheduleRoam(60000);
+  }
+  return _origHandleEvent(msg);
+};
 </script>
 </body>
 </html>
