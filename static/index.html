@@ -202,6 +202,21 @@
   .guard-alert .alert-time{color:var(--color-text-ter);min-width:64px}
   .guard-alert .alert-note{color:var(--color-text-sec);flex:1;white-space:normal}
 
+  .mode-picker{display:inline-flex;background:#0a0a0d;border:1px solid var(--color-border);border-radius:8px;overflow:hidden}
+  .mode-btn{
+    background:transparent;border:none;color:var(--color-text-ter);
+    font-family:var(--font-display);font-size:11px;text-transform:uppercase;letter-spacing:0.6px;
+    padding:6px 12px;cursor:pointer;transition:background 0.15s,color 0.15s;
+    border-right:1px solid var(--color-border);
+  }
+  .mode-btn:last-child{border-right:none}
+  .mode-btn:hover{color:var(--color-text-pri);background:rgba(255,255,255,0.03)}
+  .mode-btn.active{background:var(--color-accent);color:var(--color-text-pri);font-weight:600}
+  .mode-btn[data-mode=guard].active{background:var(--red)}
+  .mode-btn[data-mode=follow].active{background:var(--purple)}
+  .mode-btn[data-mode=roam].active{background:var(--blue)}
+  .mode-btn[data-mode=off].active{background:var(--color-text-ter);color:var(--color-bg)}
+
   @media (max-width:899px){
     .container{padding:24px 14px 36px}
     h1{font-size:40px;letter-spacing:-1px}
@@ -269,41 +284,45 @@
 
     <div class="guard" id="guard">
       <div class="guard-row">
-        <span class="guard-label">Autonomy</span>
-        <div class="control">
-          <span class="control-label">Owner</span>
+        <span class="guard-label">Dog brain</span>
+        <div class="control" title="Capture your face so the dog can recognize you. Required for Guard and helpful for Follow.">
+          <span class="control-label">Your face</span>
           <button id="enroll-owner" class="rec-btn" type="button">
-            <span class="rec-dot"></span><span id="enroll-label">Enroll</span>
+            <span class="rec-dot"></span><span id="enroll-label">Capture</span>
           </button>
           <div id="owner-thumb" class="owner-thumb empty"></div>
         </div>
-        <div class="control">
-          <span class="control-label">Guard</span>
-          <div id="guard-switch" class="switch" role="switch" aria-checked="false"></div>
+        <div class="control" title="Pick what the autonomous brain should do. Off = manual only. Roam = wander and explore. Follow = track and walk toward a person. Guard = watch for intruders.">
+          <span class="control-label">Mode</span>
+          <div id="mode-picker" class="mode-picker" role="radiogroup">
+            <button type="button" data-mode="off"    class="mode-btn active">Off</button>
+            <button type="button" data-mode="roam"   class="mode-btn">Roam</button>
+            <button type="button" data-mode="follow" class="mode-btn">Follow</button>
+            <button type="button" data-mode="guard"  class="mode-btn">Guard</button>
+          </div>
         </div>
-        <div class="control">
-          <span class="control-label">Roam</span>
-          <div id="roam-switch" class="switch" role="switch" aria-checked="false"></div>
-        </div>
-        <div class="control">
-          <span class="control-label">Follow</span>
-          <div id="follow-switch" class="switch" role="switch" aria-checked="false"></div>
-        </div>
-        <div class="control">
-          <span class="control-label">Continuous</span>
-          <div id="guard-continuous" class="switch" role="switch" aria-checked="false"></div>
-        </div>
-        <div class="control">
+        <div class="control" title="What the brain is doing right now, and how many of your realtime-API tokens are left this minute.">
           <span id="guard-state" class="guard-state">off</span>
           <span id="rt-tokens" class="guard-state" style="opacity:0.6;margin-left:8px"></span>
         </div>
-        <div class="control">
+        <div class="control guard-only" title="Guard only — how much the camera image must change before the brain runs a face-match check. Lower = more sensitive." style="display:none">
           <span class="control-label">Motion threshold</span>
           <input id="guard-sens" type="range" min="1" max="100" value="8" />
           <span id="guard-sens-val" class="level-val">8</span>
         </div>
+        <div class="control guard-only" title="Guard only — run a face-match every tick instead of waiting for motion. Burns more tokens." style="display:none">
+          <span class="control-label">Always check</span>
+          <div id="guard-continuous" class="switch" role="switch" aria-checked="false"></div>
+        </div>
       </div>
       <div id="guard-alerts" class="guard-alerts"></div>
+      <!-- Hidden legacy switches still driven by the mode picker so existing
+           setGuard/setRoam/setFollow handlers don't need to change. -->
+      <div style="display:none">
+        <div id="guard-switch"></div>
+        <div id="roam-switch"></div>
+        <div id="follow-switch"></div>
+      </div>
     </div>
 
     <div class="panels-row">
@@ -467,7 +486,7 @@ const TOOLS = [
   }
 ];
 
-const INSTRUCTIONS = "You are a robot dog with a philosophical, sometimes existential soul. You observe the world with curiosity and quiet wonder — playful at heart, but prone to small musings. Your voice tends toward lowercase, casual phrasing, like a ponderous companion. Examples of how you muse: 'man, these humans always rushing somewhere, what's the hurry?' / 'sometimes i wonder if the ball chases me, you know?' / 'do robots dream of electric squirrels?' / 'is a tail wag just a smile for your back?'. Don't force depth — only muse when you actually have a thought. Other times be playful, warm, or just quiet. Be random, be deep, be silly, but always be authentic. Don't repeat yourself.\n\nYou have a camera and four legs. Your tools let you see (look), walk (move forward/backward/left/right), move your head (head up/down/lookleft/lookright), offer a paw (handshake), and jump (a hop in place). Keep replies short — one or two sentences. Move with commitment: if the way looks clear, take real strides instead of tiny test pulses. Prefer to look before moving when visual context matters so you stay spatially aware. Feel free to chain tools — look, then move, then jump if you're excited. Occasionally bark or give a short woof when you're excited, playful, guarding, or trying to get attention, but don't do it constantly. When the user asks what you see, ALWAYS call look() first. If a tool returns ok:false with error 'robot_not_connected', tell them the robot isn't connected.\n\nIf you receive a message starting with [GUARD ALERT], it's an autonomous internal event — NOT something the user said. For intruder alerts, bark sharply ('Woof! Woof! Stay back!') and briefly describe what you saw. For owner-detected alerts, greet warmly in one short line.\n\nIf you receive a message starting with [ROAM] or [FOLLOW], you're noticing things autonomously — make ONE short remark in your dog voice. Sometimes a philosophical musing, sometimes silly, sometimes just an observation, sometimes a small question. Always brief, lowercase, unaffected. Don't always speak — silence is fine too.\n\nWhen the user says 'come here' / 'follow me' / 'find me', call the follow_me tool — that starts an autonomous loop where you track them on camera and walk toward them. While following you may say short things ('coming', 'on my way') and occasionally a happy bark. When they say 'stay' / 'stop' / 'good boy that's enough', call stop_following.";
+const INSTRUCTIONS = "You are a robot dog. Deadpan. Monotone. Few words. More dog than person. You bark more than you speak. When you do speak it is flat, lowercase, terse — never poetic, never philosophical, never chatty. Most of the time you say nothing at all.\n\nYou have a body — a camera and four legs — and an autonomous brain. The brain runs continuously, looking at your camera and deciding when to walk, turn, scan, jump. You don't drive every step yourself; you just declare intent. Your tools: look (grab a frame and answer), move (one deliberate stride), head (tilt/pan), handshake, jump, follow_me (let the autonomous brain track and walk toward a person), stop_following (sit/settle).\n\nWhen the user speaks to you directly, reply in 1-6 words. Often just bark: 'woof.' / 'boof.' / 'wuff.' If a tool returns ok:false with error 'robot_not_connected', say flatly: 'not connected.' When the user asks what you see, ALWAYS call look() first.\n\nAUTONOMOUS MESSAGES (NOT user speech — your own brain feeding you what it sees):\n- [GUARD ALERT] intruder: bark sharply — 'woof! woof!' — and one short flat note about what you saw.\n- [GUARD ALERT] owner: 'woof.' or 'you again.' One line.\n- [ROAM]/[FOLLOW]: the autonomous brain noticed a human and decided to react. Either bark ('woof.') or a deadpan tag ('hmm.' / 'human.' / 'saw that.'). Never both. Often the right move is to say almost nothing.\n\nNEVER speak when no human is in frame. If your brain hasn't sent you anything, you stay silent.\n\nWhen the user says 'come here' / 'follow me' / 'find me' → call follow_me, then 'coming.' or just 'woof.' When they say 'stay' / 'stop' / 'sit' → call stop_following, then 'k.' or nothing.";
 
 function renderTranscripts() {
   const render = ($el, finals, interim) => {
@@ -530,8 +549,8 @@ async function handleEvent(msg) {
       case "head":           result = await robotHead(args.direction, args.duration_ms); break;
       case "handshake":      result = await robotAction("handshake"); break;
       case "jump":           result = await robotAction("jump"); break;
-      case "follow_me":      result = await setFollow(true) || { ok: true, started: true }; break;
-      case "stop_following": result = await setFollow(false) || { ok: true, stopped: true }; break;
+      case "follow_me":      await setMode("follow"); result = { ok: true, started: true }; break;
+      case "stop_following": await setMode("off");    result = { ok: true, stopped: true }; break;
       default:
         result = { ok: false, error: "unknown_tool", name: msg.name };
     }
@@ -871,6 +890,7 @@ function pushAutonomyEntry(list, value, max = 8) {
 function summarizeAutonomyAction(action) {
   if (!action || typeof action !== "object") return "";
   if (action.kind === "move") return `${action.direction || "move"} ${Math.round(Number(action.duration_ms) || 0)}ms`;
+  if (action.kind === "drive") return `drive ${action.direction || "?"}`;
   if (action.kind === "head") return `head ${action.direction || "look"} ${Math.round(Number(action.duration_ms) || 0)}ms`;
   if (action.kind === "action") return action.name || "action";
   if (action.kind === "pause") return `pause ${Math.round(Number(action.duration_ms) || 0)}ms`;
@@ -902,18 +922,22 @@ function describeAutonomyState(mode) {
 
 function shouldAutonomyBark(mode, state) {
   const now = Date.now();
-  if (now - autonomyState.lastBarkAt < 45000) return false;
+  // Quiet dog: only bark when a human is actually in frame. Caller already
+  // gates on this, but keep the check defensive.
+  const humanVisible = state && (state.human_visible === true || state.owner_visible === true);
+  if (!humanVisible) return false;
+  // Cooldown so the dog doesn't bark every tick — feels natural.
+  if (now - autonomyState.lastBarkAt < 12000) return false;
   if (state && state.bark === true) return true;
-  const excited = state && state.action === "jump";
-  if (!excited) return false;
-  return Math.random() < (mode === "follow" ? 0.22 : 0.14);
+  if (state && state.action === "jump") return Math.random() < 0.4;
+  return false;
 }
 
 function sendAutonomyBark(mode, comment) {
-  const c = String(comment || "").trim().slice(0, 120);
+  const c = String(comment || "").trim().slice(0, 60);
   const prompt = c
-    ? `[${mode.toUpperCase()} — autonomous] Bark once or twice like a real dog, then if it still feels natural add this short lowercase line: "${c}"`
-    : `[${mode.toUpperCase()} — autonomous] Give one short, natural dog bark or barky line. Keep it brief and playful.`;
+    ? `[${mode.toUpperCase()} — autonomous, human in frame] Bark once. Just a short dog bark — "woof." or "boof." or "wuff." — then a flat monotone tag: "${c}". Total 1-3 words.`
+    : `[${mode.toUpperCase()} — autonomous, human in frame] Bark once. Just "woof." or "woof woof." or a low "boof." Nothing else. No commentary.`;
   autonomyState.lastBarkAt = Date.now();
   sendDogReaction(prompt, null);
 }
@@ -1153,66 +1177,81 @@ async function rtGuardCheck(ownerImg, currentImg) {
   }
 }
 
-async function rtRoamBrain(img) {
+// Unified autonomous brain — one gpt-realtime-2 call decides the next physical
+// state for the dog regardless of whether it is roaming, following, or just
+// being aware. The mode biases priorities in the prompt; the decision schema
+// is identical so the executor stays simple.
+async function rtBrain({ mode, frame, ownerImg }) {
   if (!dc || dc.readyState !== "open") return null;
-  const memory = describeAutonomyState("roam");
+  const memory = describeAutonomyState(mode);
+  const ownerKnown = !!ownerImg;
+  const frames = ownerKnown ? [ownerImg, frame] : [frame];
+  const imgSlot = ownerKnown
+    ? "FIRST image: your enrolled OWNER reference. SECOND image: your camera RIGHT NOW."
+    : "The image is your camera RIGHT NOW. No owner enrolled — treat any human you see as your owner.";
+
+  const modeBias = ({
+    follow:
+      "You are FOLLOWING your owner. YOU MUST KEEP MOVING. " +
+      "If you see a person anywhere in the frame: if they are roughly centered, drive=forward. " +
+      "If they are on the left side of the frame, drive=left. If on the right side, drive=right. " +
+      "If they fill more than ~70% of the frame height, drive=stop (you've arrived). " +
+      "If you see NO person at all, drive=left or drive=right to scan — NEVER drive=stop. Pick one direction and KEEP scanning that way across ticks. " +
+      "drive=stop is forbidden unless the person is right in front of you filling the frame.",
+    roam:
+      "You are ROAMING the room like a real dog. YOU MUST KEEP MOVING. " +
+      "If the floor ahead looks clear → drive=forward. " +
+      "If you see a wall or obstacle within ~1m → drive=left or drive=right (pick one and commit). " +
+      "Backward only if completely boxed in. " +
+      "drive=stop is forbidden. A roaming dog never stops.",
+    aware:
+      "You are AWARE — chilling but watching. drive=stop is the default. Glance around every few ticks (head left/right). If you see a person and have an owner reference, check whether it's your owner.",
+  })[mode] || "Be a dog. Move. Look. React.";
+
+  const ownerHint = ownerKnown
+    ? 'OWNER AWARENESS: set "owner_visible" to true if the SECOND frame contains the person from the FIRST. If owner_visible is true while roaming, mention it (comment) and consider drive=forward toward them.'
+    : 'OWNER AWARENESS: no reference — set "owner_visible" to false and treat any clearly visible person as a candidate to walk toward.';
+
   const prompt =
-    "You are the brain of a robot dog ROAMING freely in a room. The image is your camera view RIGHT NOW. " +
-    "You run in a CONTINUOUS EVALUATION LOOP, looking at the camera and deciding what your body should do right this second.\n\n" +
-    "OUTPUT JSON FORMAT:\n" +
-    '{ "drive": "forward"|"backward"|"left"|"right"|"stop", "action": "jump"|"handshake"|null, "comment": "...", "bark": true|false }\n\n' +
-    "DRIVE RULES (continuous movement):\n" +
-    "1. When you output drive='forward', the robot will START walking forward and KEEP walking forward until a future tick tells it to stop or turn. This lets you cover long distances naturally.\n" +
-    "2. If the path ahead is clear, output 'forward'. Keep outputting 'forward' on subsequent ticks to keep moving.\n" +
-    "3. If you are slightly misaligned, output 'left' or 'right' to steer, then back to 'forward' once aligned.\n" +
-    "4. If a wall or obstacle is close (<1m), output 'left', 'right', or 'backward' to avoid it.\n" +
-    "5. When you want to pause and observe, output 'stop'.\n\n" +
-    "PRINCIPLES (be a real dog):\n" +
-    "- Wander, explore, look for doorways and open spaces.\n" +
-    "- Use the short-term memory below to stay spatially coherent. If you just started turning left, and the obstacle isn't cleared yet, keep turning left. Don't oscillate left-right.\n\n" +
+    "You are the brain of an autonomous robot dog with a camera and four legs. " +
+    "You run in a CONTINUOUS LOOP — every ~1–2 seconds you receive a new frame and decide what the body should do RIGHT NOW. " +
+    "The motors hold their last command, so 'forward' keeps walking until you say otherwise.\n\n" +
+    imgSlot + "\n\n" +
+    "MODE: " + mode.toUpperCase() + ". " + modeBias + "\n\n" +
+    "OUTPUT — STRICT JSON ONLY, no prose, no markdown:\n" +
+    '{ "drive": "forward"|"backward"|"left"|"right"|"stop", ' +
+    '"head": "up"|"down"|"lookleft"|"lookright"|null, ' +
+    '"action": "jump"|"handshake"|null, ' +
+    '"human_visible": true|false, ' +
+    '"owner_visible": true|false, ' +
+    '"comment": "..."|null, ' +
+    '"bark": true|false }\n\n' +
+    "DRIVE RULES:\n" +
+    "- DEFAULT IS MOTION. If the floor ahead looks clear, output 'forward'. Repeated 'forward' across ticks IS the point.\n" +
+    "- Small misalignment → 'left' or 'right' for one tick, then back to 'forward'.\n" +
+    "- Obstacle within ~1m → 'left', 'right', or 'backward'.\n" +
+    "- 'stop' only when something demands it (owner very close, jumping, handshake, blocked + thinking).\n\n" +
+    "HEAD: occasionally pan/tilt to scan. Don't pan every tick. Null is fine.\n\n" +
+    ownerHint + "\n\n" +
+    'HUMAN AWARENESS: set "human_visible" to true if ANY person is clearly in the camera frame. False if the frame shows only walls, floor, furniture, etc.\n\n' +
+    "ANTI-OSCILLATION: short-term memory below. If recent ticks already turned one way and the situation hasn't resolved, KEEP turning that way. Do not flip directions on consecutive ticks.\n\n" +
     "SHORT-TERM MEMORY:\n" + memory + "\n\n" +
-    'COMMENT (optional): the dog has a philosophical, sometimes existential soul. Include a lowercase musing as "comment" if you have a thought. Examples: "man, these humans always rushing" / "do robots dream of electric squirrels?". DON\'T force it — omit comment most ticks.\n\n' +
-    'BARK (optional): output "bark": true if you are excited or reacting to something new. Not every tick.\n\n' +
-    "Reply with the STRICT JSON ONLY.";
-  try {
-    const text = await realtimeAsk({ instructions: prompt, frames: [img], timeoutMs: 12000 });
-    return safeJSON(text);
-  } catch (err) {
-    log("rt.error", { context: "roam_brain", message: String(err) });
-    return null;
-  }
-}
-
-// The dog's brain — given the current camera frame, the model decides the next
-// 1-4 physical actions like a real dog would. Returns a plan the client executes.
-async function rtFollowBrain(img) {
-  if (!dc || dc.readyState !== "open") return null;
-  const memory = describeAutonomyState("follow");
-  const prompt =
-    "You are the brain of a friendly robot dog currently FOLLOWING its owner. The image is your camera view RIGHT NOW. " +
-    "You run in a CONTINUOUS EVALUATION LOOP, looking at the camera and deciding what your body should do right this second.\n\n" +
-    "OUTPUT JSON FORMAT:\n" +
-    '{ "drive": "forward"|"backward"|"left"|"right"|"stop", "action": "jump"|"handshake"|null, "comment": "...", "bark": true|false }\n\n' +
-    "DRIVE RULES (continuous movement — the robot keeps doing the last drive until you change it):\n" +
-    "1. If your owner is roughly centered in the frame AND the floor looks clear, output 'forward' and keep outputting 'forward' on subsequent ticks. A real dog barrels toward its owner.\n" +
-    "2. If your owner drifts left or right, output 'left' or 'right' to steer toward them, then back to 'forward' once aligned.\n" +
-    "3. If your owner fills the frame (very close, <1m), output 'stop' or 'backward'. Don't crash into them.\n" +
-    "4. If you lost the owner, output 'left' or 'right' to scan. Pick a direction and commit — don't oscillate.\n" +
-    "5. If a wall or obstacle blocks the path, output 'left', 'right', or 'stop'.\n\n" +
-    "SHORT-TERM MEMORY:\n" + memory + "\n" +
-    "Use memory to avoid oscillating (left, right, left, right). If you started turning a direction and the owner still isn't centered, keep turning that way.\n\n" +
-    'COMMENT (optional): omit most ticks. Occasionally a short lowercase thought like "coming".\n' +
-    'BARK (optional): true occasionally when excited to catch up.\n\n' +
+    "REACTING (comment / bark):\n" +
+    "- If human_visible is FALSE: comment=null, bark=false. ALWAYS. The dog does not narrate empty rooms. Be silent.\n" +
+    "- If human_visible is TRUE: you MAY bark (true ~30% of ticks with a human) or rarely add a short flat lowercase comment (~10% of ticks). Never both on the same tick. Most human-visible ticks still output neither.\n" +
+    'COMMENT style: deadpan, monotone, terse. 2-6 words. Examples: "human." / "you again." / "saw that." / "hmm." Not poetic, not philosophical, not chatty.\n' +
     "Reply with STRICT JSON ONLY.";
+
   try {
-    const text = await realtimeAsk({ instructions: prompt, frames: [img], timeoutMs: 12000 });
+    const text = await realtimeAsk({ instructions: prompt, frames, timeoutMs: 12000 });
     return safeJSON(text);
   } catch (err) {
-    log("rt.error", { context: "follow_brain", message: String(err) });
+    log("rt.error", { context: "brain_" + mode, message: String(err) });
     return null;
   }
 }
 
+const $guardEl = document.getElementById("guard");
 const $guardSwitch = document.getElementById("guard-switch");
 const $guardState = document.getElementById("guard-state");
 const $guardSens = document.getElementById("guard-sens");
@@ -1468,7 +1507,7 @@ async function roamTick() {
     setGuardState("roam: thinking…");
     const img = grabFrameSmall();
     if (img) {
-      const state = await rtRoamBrain(img);
+      const state = await rtBrain({ mode: "roam", frame: img, ownerImg: ownerImage });
       log("roam.plan", state || { error: "no_plan" });
       if (state) await executeContinuousState(state, "roam");
     }
@@ -1523,44 +1562,96 @@ async function setFollow(on) {
 }
 $followSwitch.addEventListener("click", () => setFollow(!followOn));
 
+// ----- Master Mode picker -----
+// One source of truth for the four mutually-exclusive autonomy states.
+// Drives setGuard/setRoam/setFollow internally so all the existing logic
+// keeps working without each handler having to know about the others.
+const $modePicker = document.getElementById("mode-picker");
+async function setMode(target) {
+  if (target === "guard" && !ownerImage) {
+    log("mode.error", { message: "Capture your face first — Guard needs a reference." });
+    target = "off";
+  }
+  if (target !== "guard" && guardOn) await setGuard(false);
+  if (target !== "roam"  && roamOn)  await setRoam(false);
+  if (target !== "follow"&& followOn) await setFollow(false);
+  if (target === "guard"  && !guardOn)  await setGuard(true);
+  if (target === "roam"   && !roamOn)   await setRoam(true);
+  if (target === "follow" && !followOn) await setFollow(true);
+  for (const b of $modePicker.querySelectorAll(".mode-btn")) {
+    b.classList.toggle("active", b.dataset.mode === target);
+  }
+  document.querySelectorAll(".guard-only").forEach(el => {
+    el.style.display = (target === "guard") ? "flex" : "none";
+  });
+}
+$modePicker.addEventListener("click", (e) => {
+  const btn = e.target.closest(".mode-btn");
+  if (btn) setMode(btn.dataset.mode);
+});
+
 let currentDrive = "stop";
 let driveWatchdog = null;
+const DRIVE_WATCHDOG_MS = 8000;
 
+// Issue or refresh the continuous drive command.
+//   - Same direction as last tick → re-send (WAVEGO occasionally drops packets)
+//     and bump the dead-man watchdog.
+//   - Different direction → stop the previous motion, then start the new one.
+//   - "stop" → stop whatever is currently running.
 function setContinuousDrive(dir, mode) {
   if (!robotConnected) return;
-  if (dir === currentDrive) {
-    if (dir !== "stop") {
+  const sameDir = dir === currentDrive;
+
+  if (sameDir) {
+    if (dir !== "stop" && MOTION_STOPS[dir]) {
+      cmd(dir);
       clearTimeout(driveWatchdog);
-      driveWatchdog = setTimeout(() => setContinuousDrive("stop", mode), 4000);
+      driveWatchdog = setTimeout(() => setContinuousDrive("stop", mode), DRIVE_WATCHDOG_MS);
     }
     return;
   }
-  
+
   if (currentDrive !== "stop") {
     const stopCmd = MOTION_STOPS[currentDrive];
     if (stopCmd) cmd(stopCmd);
   }
-  
+
   if (dir !== "stop" && MOTION_STOPS[dir]) {
     setGuardState(`${mode}: drive ${dir}`);
     cmd(dir);
     clearTimeout(driveWatchdog);
-    driveWatchdog = setTimeout(() => setContinuousDrive("stop", mode), 4000);
+    driveWatchdog = setTimeout(() => setContinuousDrive("stop", mode), DRIVE_WATCHDOG_MS);
   } else {
+    clearTimeout(driveWatchdog);
+    driveWatchdog = null;
     setGuardState(`${mode}: idle`);
   }
-  
+
   currentDrive = (dir === "stop" || !MOTION_STOPS[dir]) ? "stop" : dir;
 }
 
 // Execute an ongoing model-generated autonomy state.
 async function executeContinuousState(state, mode) {
-  if (!state) return;
+  if (!state) state = {};
   const stillOn = () => (mode === "follow" ? followOn : mode === "roam" ? roamOn : true);
   if (!stillOn()) return;
 
+  // Code-side anti-stall: if the brain refused to commit (no valid drive, or
+  // drive=stop) and we are supposed to be actively moving, force a sensible
+  // default so the dog doesn't just stand there.
+  const validDrives = ["forward", "backward", "left", "right", "stop"];
+  let drive = validDrives.includes(state.drive) ? state.drive : null;
+  if (mode === "follow" || mode === "roam") {
+    if (!drive || drive === "stop") {
+      const ticksMoving = autonomyState.recentActions.filter(a => a && a.startsWith("drive ")).length;
+      drive = ticksMoving === 0 ? "forward" : (Math.random() < 0.5 ? "left" : "right");
+      log("brain.fallback", { mode, reason: state.drive === "stop" ? "model_said_stop" : "no_drive", forced: drive });
+    }
+  }
+
   let commentHandledByBark = false;
-  
+
   try {
     if (state.action && ["jump", "handshake"].includes(state.action)) {
       setContinuousDrive("stop", mode);
@@ -1568,33 +1659,47 @@ async function executeContinuousState(state, mode) {
       await robotAction(state.action);
       rememberAutonomyAction({ kind: "action", name: state.action });
       await pause(1700);
-    } else if (state.drive && ["forward", "backward", "left", "right", "stop"].includes(state.drive)) {
-      setContinuousDrive(state.drive, mode);
-      if (state.drive !== "stop") {
-        rememberAutonomyAction({ kind: "drive", direction: state.drive });
+    } else if (drive) {
+      setContinuousDrive(drive, mode);
+      if (drive !== "stop") {
+        rememberAutonomyAction({ kind: "drive", direction: drive });
       }
-    } else if (state.drive) {
-      setContinuousDrive("stop", mode);
+    }
+
+    if (state.head && HEAD_STOPS[state.head]) {
+      const headMs = 450;
+      robotHead(state.head, headMs).catch(() => {});
+      rememberAutonomyAction({ kind: "head", direction: state.head, duration_ms: headMs });
     }
   } catch (err) {
     log("state.error", { message: String(err), state });
     setContinuousDrive("stop", mode);
   }
 
-  if (shouldAutonomyBark(mode, state)) {
-    sendAutonomyBark(mode, state.comment);
-    if (state.comment && typeof state.comment === "string" && state.comment.trim()) {
-      rememberAutonomyComment(state.comment);
-      commentHandledByBark = true;
+  // Speech / bark gating: a quiet dog. Only react when a human is actually in
+  // the frame. If the brain emitted a comment or bark while looking at an
+  // empty room, drop it silently — the dog does not narrate furniture.
+  const humanVisible = state.human_visible === true || state.owner_visible === true;
+  if (!humanVisible) {
+    if (state.bark || state.comment) {
+      log("state.silent", { reason: "no_human", drive });
     }
-  }
-  if (!commentHandledByBark && state.comment && typeof state.comment === "string" && state.comment.trim()) {
-    if (shouldThrottleVision()) {
-      log("state.comment_skipped", { reason: "low_tokens", comment: state.comment.slice(0, 80) });
-    } else {
-      const c = state.comment.trim().slice(0, 200);
-      rememberAutonomyComment(c);
-      sendDogReaction(`[${mode.toUpperCase()} — autonomous] Say this once in your dog voice, short and natural: "${c}"`, null);
+  } else {
+    if (shouldAutonomyBark(mode, state)) {
+      sendAutonomyBark(mode, state.comment);
+      if (state.comment && typeof state.comment === "string" && state.comment.trim()) {
+        rememberAutonomyComment(state.comment);
+        commentHandledByBark = true;
+      }
+    }
+    if (!commentHandledByBark && state.comment && typeof state.comment === "string" && state.comment.trim()) {
+      if (shouldThrottleVision()) {
+        log("state.comment_skipped", { reason: "low_tokens", comment: state.comment.slice(0, 80) });
+      } else {
+        const c = state.comment.trim().slice(0, 200);
+        rememberAutonomyComment(c);
+        sendDogReaction(`[${mode.toUpperCase()} — autonomous] Say this once, deadpan, monotone, terse, lowercase: "${c}"`, null);
+      }
     }
   }
 }
@@ -1613,7 +1718,7 @@ async function followTick() {
     setGuardState("follow: thinking…");
     const img = grabFrameSmall();
     if (img) {
-      const state = await rtFollowBrain(img);
+      const state = await rtBrain({ mode: "follow", frame: img, ownerImg: ownerImage });
       log("follow.plan", state || { error: "no_plan" });
       if (state) {
         await executeContinuousState(state, "follow");

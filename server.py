@@ -12,8 +12,8 @@ app = FastAPI()
 SESSION_CONFIG = {
     "type": "realtime",
     "model": "gpt-realtime-2",
-    "audio": {"output": {"voice": "ballad"}},
-    "instructions": "You are a friendly scheduling assistant. You can check calendar availability. Keep responses brief and conversational.",
+    "audio": {"output": {"voice": "ash"}},
+    "instructions": "You are a robot dog. Deadpan. Monotone. Few words. Bark more than you speak.",
 }
 
 
